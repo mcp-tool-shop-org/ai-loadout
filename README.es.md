@@ -1,22 +1,24 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a> | <a href="README.ja.md">日本語</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.md">English</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
-  <img src="logo.png" width="400" alt="ai-loadout">
+  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/ai-loadout/readme.png" width="400" alt="ai-loadout">
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/ai-loadout/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/ai-loadout/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/mcp-tool-shop-org/ai-loadout"><img src="https://codecov.io/gh/mcp-tool-shop-org/ai-loadout/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/ai-loadout"><img src="https://img.shields.io/npm/v/@mcptoolshop/ai-loadout" alt="npm"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="Licencia MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+  <a href="https://mcp-tool-shop-org.github.io/ai-loadout/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
 Enrutador de conocimiento contextual para agentes de IA.
 
-`ai-loadout` es el formato de tabla de despacho y motor de coincidencia que permite a los agentes de IA cargar el conocimiento adecuado para la tarea en cuestión. En lugar de volcar todo en el contexto, mantienes un índice pequeño y cargas los contenidos bajo demanda.
+`ai-loadout` es el formato de la tabla de distribución y el motor de coincidencia que permite a los agentes de IA cargar el conocimiento adecuado para la tarea en cuestión. En lugar de incluir todo en el contexto, se mantiene un índice pequeño y se cargan los datos según sea necesario.
 
-Piensa en ello como un equipamiento de videojuego — equipas al agente con exactamente el conocimiento que necesita antes de cada misión.
+Piénselo como la configuración de un juego: se equipa al agente con exactamente el conocimiento que necesita antes de cada misión.
 
 ## Instalación
 
@@ -24,11 +26,11 @@ Piensa en ello como un equipamiento de videojuego — equipas al agente con exac
 npm install @mcptoolshop/ai-loadout
 ```
 
-## Conceptos Fundamentales
+## Conceptos básicos
 
-### La Tabla de Despacho
+### La tabla de distribución
 
-Un `LoadoutIndex` es un índice estructurado de contenidos de conocimiento:
+Un `LoadoutIndex` es un índice estructurado de datos de conocimiento:
 
 ```json
 {
@@ -56,17 +58,17 @@ Un `LoadoutIndex` es un índice estructurado de contenidos de conocimiento:
 }
 ```
 
-### Niveles de Prioridad
+### Niveles de prioridad
 
 | Nivel | Comportamiento | Ejemplo |
-|-------|---------------|---------|
-| `core` | Siempre cargado | "nunca omitas tests para que CI pase" |
-| `domain` | Cargado cuando las palabras clave de la tarea coinciden | Reglas de CI al editar workflows |
-| `manual` | Nunca se carga automáticamente, solo búsqueda explícita | Problemas oscuros de plataforma |
+|------|----------|---------|
+| `core` | Cargado siempre | "nunca omitir pruebas para que la integración continua sea exitosa" |
+| `domain` | Cargado cuando las palabras clave de la tarea coinciden | Reglas de integración continua al editar flujos de trabajo |
+| `manual` | Nunca se carga automáticamente, solo búsqueda explícita | Aspectos técnicos de la plataforma que pueden ser difíciles de entender |
 
-### Frontmatter del Contenido
+### Metadatos del archivo de datos
 
-Cada archivo de contenido lleva sus propios metadatos de enrutamiento:
+Cada archivo de datos contiene sus propios metadatos de enrutamiento:
 
 ```markdown
 ---
@@ -84,13 +86,13 @@ triggers:
 CI minutes are finite...
 ```
 
-El frontmatter es la fuente de verdad. El índice se deriva de él.
+El metadato es la fuente de la verdad. El índice se deriva de él.
 
 ## API
 
-### `matchLoadout(task, index)`
+### `matchLoadout(tarea, índice)`
 
-Compara una descripción de tarea contra un índice de loadout. Devuelve las entradas que deben cargarse, ordenadas por fuerza de coincidencia.
+Compara una descripción de la tarea con un índice de configuración. Devuelve las entradas que deben cargarse, clasificadas por la fuerza de la coincidencia.
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
@@ -99,12 +101,12 @@ const results = matchLoadout("fix the CI workflow", index);
 // [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
 ```
 
-- Las entradas core siempre se incluyen (puntuación 1.0)
-- Las entradas manual nunca se incluyen automáticamente
-- Las entradas domain se puntúan por coincidencia de palabras clave + bonificación de patrón
+- Las entradas principales siempre se incluyen (puntuación 1.0)
+- Las entradas manuales nunca se incluyen automáticamente
+- Las entradas de dominio se puntúan según la superposición de palabras clave + bonificación de patrones
 - Los resultados se ordenan por puntuación descendente
 
-### `lookupEntry(id, index)`
+### `lookupEntry(id, índice)`
 
 Busca una entrada específica por ID. Para entradas manuales o acceso explícito.
 
@@ -114,9 +116,9 @@ import { lookupEntry } from "@mcptoolshop/ai-loadout";
 const entry = lookupEntry("github-actions", index);
 ```
 
-### `parseFrontmatter(content)`
+### `parseFrontmatter(contenido)`
 
-Analiza el frontmatter tipo YAML de un archivo de contenido.
+Analiza el metadato en formato YAML de un archivo de datos.
 
 ```typescript
 import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
@@ -129,11 +131,11 @@ if (frontmatter) {
 
 ### `serializeFrontmatter(fm)`
 
-Serializa un objeto `Frontmatter` de vuelta a cadena de texto.
+Serializa un objeto `Frontmatter` de nuevo a una cadena.
 
-### `validateIndex(index)`
+### `validateIndex(índice)`
 
-Valida la integridad estructural de un `LoadoutIndex`. Devuelve un arreglo de problemas.
+Valida la integridad estructural de un `LoadoutIndex`. Devuelve un array de problemas.
 
 ```typescript
 import { validateIndex } from "@mcptoolshop/ai-loadout";
@@ -145,11 +147,11 @@ if (errors.length > 0) {
 }
 ```
 
-Verifica: campos requeridos, IDs únicos, formato kebab-case, límites de resumen, presencia de palabras clave para entradas domain, prioridades válidas, presupuestos no negativos.
+Comprobaciones: campos obligatorios, IDs únicos, formato kebab-case, límites del resumen, presencia de palabras clave para entradas de dominio, prioridades válidas, presupuestos no negativos.
 
-### `estimateTokens(text)`
+### `estimateTokens(texto)`
 
-Estima el conteo de tokens de un texto. Usa la heurística de caracteres/4.
+Estima el número de tokens a partir de un texto. Utiliza la heurística de chars/4.
 
 ```typescript
 import { estimateTokens } from "@mcptoolshop/ai-loadout";
@@ -174,22 +176,22 @@ import type {
 
 ## Consumidores
 
-- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Optimizador de CLAUDE.md para Claude Code. Usa ai-loadout para la tabla de despacho y el motor de coincidencia.
+- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Optimizador de CLAUDE.md para Claude Code. Utiliza ai-loadout para la tabla de distribución y la coincidencia.
 
 ## Seguridad
 
-Este paquete es una biblioteca de datos pura. No accede al sistema de archivos, no realiza solicitudes de red ni recopila telemetría. Todo el I/O es responsabilidad del consumidor.
+Este paquete es una biblioteca de datos pura. No accede al sistema de archivos, realiza solicitudes de red ni recopila datos de telemetría. Toda la entrada/salida es responsabilidad del consumidor.
 
-### Modelo de Amenazas
+### Modelo de amenazas
 
 | Amenaza | Mitigación |
-|---------|------------|
-| Entrada de frontmatter malformado | `parseFrontmatter()` devuelve `null` ante entrada inválida — sin excepciones, sin eval |
-| Contaminación de prototipo | El parser manual usa literales de objeto planos, sin `JSON.parse` de estructuras anidadas no confiables |
-| Índice con datos incorrectos | `validateIndex()` detecta problemas estructurales antes de que se propaguen |
-| DoS por Regex | Sin regex proporcionado por el usuario — los patrones se comparan como búsquedas de texto plano |
+|--------|------------|
+| Metadato de entrada con formato incorrecto | `parseFrontmatter()` devuelve `null` en caso de entrada no válida; no se generan excepciones ni se utiliza `eval` |
+| Contaminación de prototipos | El analizador personalizado utiliza literales de objetos simples, no `JSON.parse` de estructuras anidadas no confiables. |
+| Índice con datos incorrectos | `validateIndex()` detecta problemas estructurales antes de que se propaguen. |
+| Ataque de denegación de servicio con expresiones regulares | No se utilizan expresiones regulares proporcionadas por el usuario; los patrones se comparan como búsquedas de cadenas simples. |
 
-Consulta [SECURITY.md](SECURITY.md) para la política de seguridad completa.
+Consulte [SECURITY.md](SECURITY.md) para obtener la política de seguridad completa.
 
 ---
 

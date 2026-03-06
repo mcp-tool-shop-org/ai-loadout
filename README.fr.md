@@ -1,22 +1,24 @@
 <p align="center">
-  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.fr.md">Français</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a> | <a href="README.ja.md">日本語</a>
+  <a href="README.ja.md">日本語</a> | <a href="README.zh.md">中文</a> | <a href="README.es.md">Español</a> | <a href="README.md">English</a> | <a href="README.hi.md">हिन्दी</a> | <a href="README.it.md">Italiano</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </p>
 
 <p align="center">
-  <img src="logo.png" width="400" alt="ai-loadout">
+  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/ai-loadout/readme.png" width="400" alt="ai-loadout">
 </p>
 
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/ai-loadout/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/ai-loadout/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/mcp-tool-shop-org/ai-loadout"><img src="https://codecov.io/gh/mcp-tool-shop-org/ai-loadout/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/ai-loadout"><img src="https://img.shields.io/npm/v/@mcptoolshop/ai-loadout" alt="npm"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="Licence MIT"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+  <a href="https://mcp-tool-shop-org.github.io/ai-loadout/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
-Routeur de connaissances contextuel pour agents IA.
+Routeur de connaissances contextuel pour les agents d'IA.
 
-`ai-loadout` est le format de table de dispatch et le moteur de correspondance qui permet aux agents IA de charger les bonnes connaissances pour la tache en cours. Au lieu de tout charger dans le contexte, vous gardez un petit index et chargez les contenus a la demande.
+`ai-loadout` est le format de table de répartition et le moteur de correspondance qui permet aux agents d'IA de charger les connaissances appropriées pour la tâche en cours. Au lieu de tout inclure dans le contexte, vous conservez un index minimal et chargez les données à la demande.
 
-Pensez-y comme un equipement de jeu video — vous equipez l'agent avec exactement les connaissances dont il a besoin avant chaque mission.
+Considérez cela comme une configuration de jeu : vous équipez l'agent des connaissances dont il a strictement besoin avant chaque mission.
 
 ## Installation
 
@@ -24,11 +26,11 @@ Pensez-y comme un equipement de jeu video — vous equipez l'agent avec exacteme
 npm install @mcptoolshop/ai-loadout
 ```
 
-## Concepts Fondamentaux
+## Concepts clés
 
-### La Table de Dispatch
+### La table de répartition
 
-Un `LoadoutIndex` est un index structure de contenus de connaissances :
+Un `LoadoutIndex` est un index structuré des données de connaissances :
 
 ```json
 {
@@ -56,17 +58,17 @@ Un `LoadoutIndex` est un index structure de contenus de connaissances :
 }
 ```
 
-### Niveaux de Priorite
+### Niveaux de priorité
 
 | Niveau | Comportement | Exemple |
-|--------|-------------|---------|
-| `core` | Toujours charge | "ne jamais ignorer les tests pour faire passer la CI" |
-| `domain` | Charge quand les mots-cles de la tache correspondent | Regles CI lors de l'edition de workflows |
-| `manual` | Jamais charge automatiquement, consultation explicite uniquement | Problemes obscurs de plateforme |
+|------|----------|---------|
+| `core` | Toujours chargé | "Ne jamais ignorer les tests pour que l'intégration continue soit réussie" |
+| `domain` | Chargé lorsque les mots-clés de la tâche correspondent | Règles d'intégration continue lors de la modification des flux de travail |
+| `manual` | Jamais chargé automatiquement, recherche explicite uniquement | Détails spécifiques à certaines plateformes |
 
-### Frontmatter du Contenu
+### Métadonnées du fichier de données
 
-Chaque fichier de contenu porte ses propres metadonnees de routage :
+Chaque fichier de données contient ses propres métadonnées de routage :
 
 ```markdown
 ---
@@ -84,13 +86,13 @@ triggers:
 CI minutes are finite...
 ```
 
-Le frontmatter est la source de verite. L'index en est derive.
+Les métadonnées sont la source de vérité. L'index est dérivé de celles-ci.
 
 ## API
 
-### `matchLoadout(task, index)`
+### `matchLoadout(tâche, index)`
 
-Compare une description de tache avec un index de loadout. Retourne les entrees qui doivent etre chargees, classees par force de correspondance.
+Fait correspondre une description de tâche à un index de configuration. Renvoie les entrées qui doivent être chargées, classées par force de correspondance.
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
@@ -99,14 +101,14 @@ const results = matchLoadout("fix the CI workflow", index);
 // [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
 ```
 
-- Les entrees core sont toujours incluses (score 1.0)
-- Les entrees manual ne sont jamais incluses automatiquement
-- Les entrees domain sont notees par chevauchement de mots-cles + bonus de patron
-- Les resultats sont tries par score decroissant
+- Les entrées principales sont toujours incluses (score de 1,0)
+- Les entrées manuelles ne sont jamais incluses automatiquement
+- Les entrées spécifiques à un domaine sont notées en fonction du chevauchement des mots-clés et d'un bonus de motif
+- Les résultats sont triés par score décroissant
 
 ### `lookupEntry(id, index)`
 
-Recherche une entree specifique par ID. Pour les entrees manuelles ou l'acces explicite.
+Recherche une entrée spécifique par ID. Pour les entrées manuelles ou l'accès explicite.
 
 ```typescript
 import { lookupEntry } from "@mcptoolshop/ai-loadout";
@@ -114,9 +116,9 @@ import { lookupEntry } from "@mcptoolshop/ai-loadout";
 const entry = lookupEntry("github-actions", index);
 ```
 
-### `parseFrontmatter(content)`
+### `parseFrontmatter(contenu)`
 
-Analyse le frontmatter de type YAML d'un fichier de contenu.
+Analyse les métadonnées au format YAML d'un fichier de données.
 
 ```typescript
 import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
@@ -129,11 +131,11 @@ if (frontmatter) {
 
 ### `serializeFrontmatter(fm)`
 
-Serialise un objet `Frontmatter` en chaine de caracteres.
+Série les métadonnées d'un objet `Frontmatter` en une chaîne de caractères.
 
 ### `validateIndex(index)`
 
-Valide l'integrite structurelle d'un `LoadoutIndex`. Retourne un tableau de problemes.
+Valide l'intégrité structurelle d'un `LoadoutIndex`. Renvoie un tableau de problèmes.
 
 ```typescript
 import { validateIndex } from "@mcptoolshop/ai-loadout";
@@ -145,11 +147,11 @@ if (errors.length > 0) {
 }
 ```
 
-Verifie : champs requis, IDs uniques, format kebab-case, limites de resume, presence de mots-cles pour les entrees domain, priorites valides, budgets non negatifs.
+Vérifications : champs obligatoires, ID uniques, format kebab-case, limites du résumé, présence de mots-clés pour les entrées de domaine, priorités valides, budgets non négatifs.
 
-### `estimateTokens(text)`
+### `estimateTokens(texte)`
 
-Estime le nombre de tokens d'un texte. Utilise l'heuristique caracteres/4.
+Estime le nombre de jetons à partir d'un texte. Utilise l'heuristique chars/4.
 
 ```typescript
 import { estimateTokens } from "@mcptoolshop/ai-loadout";
@@ -174,23 +176,23 @@ import type {
 
 ## Consommateurs
 
-- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Optimiseur de CLAUDE.md pour Claude Code. Utilise ai-loadout pour la table de dispatch et la correspondance.
+- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Optimiseur CLAUDE.md pour Claude Code. Utilise ai-loadout pour la table de répartition et la correspondance.
 
-## Securite
+## Sécurité
 
-Ce paquet est une bibliotheque de donnees pure. Il n'accede pas au systeme de fichiers, ne fait pas de requetes reseau et ne collecte pas de telemetrie. Toutes les operations d'E/S sont de la responsabilite du consommateur.
+Ce paquet est une bibliothèque de données pure. Il n'accède pas au système de fichiers, ne fait pas de requêtes réseau ni ne collecte de données télémétriques. Toutes les opérations d'entrée/sortie sont de la responsabilité du consommateur.
 
-### Modele de Menaces
+### Modèle de menace
 
-| Menace | Attenuation |
-|--------|-------------|
-| Entree de frontmatter malformee | `parseFrontmatter()` retourne `null` sur une entree invalide — pas d'exceptions, pas d'eval |
-| Pollution de prototype | Le parser manuel utilise des litteraux d'objet simples, pas de `JSON.parse` de structures imbriquees non fiables |
-| Index avec des donnees incorrectes | `validateIndex()` detecte les problemes structurels avant qu'ils ne se propagent |
-| DoS par Regex | Pas de regex fournie par l'utilisateur — les patrons sont compares comme des recherches de texte brut |
+| Menace | Atténuation |
+|--------|------------|
+| Métadonnées corrompues | `parseFrontmatter()` renvoie `null` en cas d'entrée invalide, sans exceptions ni évaluation de code. |
+| Pollution de prototype | L'analyseur personnalisé utilise des littéraux d'objets simples, sans `JSON.parse` de structures imbriquées non fiables. |
+| Index avec des données incorrectes | `validateIndex()` détecte les problèmes structurels avant qu'ils ne se propagent. |
+| Attaque par regex DoS | Aucune expression régulière fournie par l'utilisateur, les motifs sont correspondés comme des recherches de chaînes simples. |
 
-Consultez [SECURITY.md](SECURITY.md) pour la politique de securite complete.
+Consultez [SECURITY.md](SECURITY.md) pour la politique de sécurité complète.
 
 ---
 
-Cree par [MCP Tool Shop](https://mcp-tool-shop.github.io/)
+Développé par [MCP Tool Shop](https://mcp-tool-shop.github.io/)
