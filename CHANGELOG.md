@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 — 2026-03-06
+
+- **MatchResult enrichment**: `reason` (human-readable explanation) and `mode` (eager/lazy/manual)
+- **Merge semantics**: `mergeIndexes()` for hierarchical loadouts (global → org → project → task)
+- **MergedIndex** with provenance tracking and conflict reporting
+- **UsageEvent** schema for local-only observability
+- **lazyLoad** flag on `LoadoutIndex` for demand-paged context
+- **LoadMode** type (`eager | lazy | manual`)
+- **SPEC.md**: Full specification document
+- 8 new tests (merge), 40 total
+
 ## 1.0.3 — 2026-03-06
 
 - Brand logo URL (mcp-tool-shop-org/brand)

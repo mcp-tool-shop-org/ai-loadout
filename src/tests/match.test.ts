@@ -43,6 +43,8 @@ describe("matchLoadout", () => {
     assert.equal(results.length, 1);
     assert.equal(results[0].entry.id, "core-rule");
     assert.equal(results[0].score, 1.0);
+    assert.equal(results[0].mode, "eager");
+    assert.equal(results[0].reason, "core: always loaded");
   });
 
   it("never auto-includes manual entries", () => {
@@ -63,6 +65,8 @@ describe("matchLoadout", () => {
     assert.equal(results[0].entry.id, "ci");
     assert.ok(results[0].matchedKeywords.includes("ci"));
     assert.ok(results[0].matchedKeywords.includes("workflow"));
+    assert.equal(results[0].mode, "lazy");
+    assert.ok(results[0].reason.includes("keywords"));
   });
 
   it("scores by keyword overlap proportion", () => {
@@ -87,6 +91,7 @@ describe("matchLoadout", () => {
     const withPattern = results.find((r) => r.entry.id === "with-pattern")!;
     const without = results.find((r) => r.entry.id === "without-pattern")!;
     assert.ok(withPattern.score > without.score);
+    assert.ok(withPattern.reason.includes("keywords") && withPattern.reason.includes("patterns"));
   });
 
   it("returns empty for no matches", () => {

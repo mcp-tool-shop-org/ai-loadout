@@ -33,12 +33,17 @@ export interface Budget {
   avg_task_load_observed: number | null;  // from usage telemetry (future)
 }
 
+// ── Load mode ─────────────────────────────────────────────────
+// Controls HOW a payload is loaded into agent context.
+export type LoadMode = "eager" | "lazy" | "manual";
+
 // ── The dispatch table (index.json) ────────────────────────────
 export interface LoadoutIndex {
   version: string;
   generated: string;    // ISO 8601
   entries: LoadoutEntry[];
   budget: Budget;
+  lazyLoad?: boolean;   // when true, payloads are not pre-loaded
 }
 
 // ── Frontmatter parsed from a payload file ─────────────────────
@@ -56,6 +61,33 @@ export interface MatchResult {
   score: number;         // 0-1, higher = stronger match
   matchedKeywords: string[];
   matchedPatterns: string[];
+  reason: string;        // human-readable explanation of why this matched
+  mode: LoadMode;        // how this entry should be loaded
+}
+
+// ── Usage event (append-only log) ─────────────────────────────
+// One line per load event in .claude/loadout-usage.jsonl
+export interface UsageEvent {
+  timestamp: string;      // ISO 8601
+  taskHash: string;       // session-local task identifier
+  entryId: string;        // which payload was loaded
+  trigger: string;        // which keyword/pattern caused the load
+  mode: LoadMode;         // eager, lazy, or manual
+  tokensEst: number;      // estimated token cost
+  sourceLayer?: string;   // which hierarchy layer (future: global/org/project/task)
+}
+
+// ── Merge semantics ───────────────────────────────────────────
+// For hierarchical loadouts: multiple indexes merged deterministically.
+export interface MergeConflict {
+  entryId: string;
+  layers: string[];       // which layers define this entry
+  resolution: "override" | "error";
+}
+
+export interface MergedIndex extends LoadoutIndex {
+  provenance: Record<string, string>;  // entryId → source layer name
+  conflicts: MergeConflict[];
 }
 
 // ── Validation issue ───────────────────────────────────────────

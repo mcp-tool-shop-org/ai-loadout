@@ -12,7 +12,7 @@
  * - Manual entries are never auto-included (require explicit lookup)
  */
 
-import type { LoadoutIndex, LoadoutEntry, MatchResult } from "./types.js";
+import type { LoadoutIndex, LoadoutEntry, MatchResult, LoadMode } from "./types.js";
 
 const MIN_SCORE = 0.1;  // minimum score to include a domain entry
 
@@ -95,7 +95,21 @@ export function matchLoadout(
     );
 
     if (score >= MIN_SCORE) {
-      results.push({ entry, score, matchedKeywords, matchedPatterns });
+      const mode: LoadMode = entry.priority === "manual"
+        ? "manual"
+        : entry.priority === "core"
+          ? "eager"
+          : "lazy";
+
+      const reason = entry.priority === "core"
+        ? "core: always loaded"
+        : matchedKeywords.length > 0 && matchedPatterns.length > 0
+          ? `keywords [${matchedKeywords.join(", ")}] + patterns [${matchedPatterns.join(", ")}]`
+          : matchedKeywords.length > 0
+            ? `keywords [${matchedKeywords.join(", ")}]`
+            : `patterns [${matchedPatterns.join(", ")}]`;
+
+      results.push({ entry, score, matchedKeywords, matchedPatterns, reason, mode });
     }
   }
 

@@ -2,11 +2,15 @@
 export type {
   Priority,
   Triggers,
+  LoadMode,
   LoadoutEntry,
   Budget,
   LoadoutIndex,
   Frontmatter,
   MatchResult,
+  UsageEvent,
+  MergeConflict,
+  MergedIndex,
   IssueSeverity,
   ValidationIssue,
 } from "./types.js";
@@ -24,3 +28,6 @@ export { matchLoadout, lookupEntry } from "./match.js";
 
 // ── Validator ──────────────────────────────────────────────────
 export { validateIndex } from "./validate.js";
+
+// ── Merge ─────────────────────────────────────────────────────
+export { mergeIndexes } from "./merge.js";
