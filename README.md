@@ -16,14 +16,15 @@
 
 Context-aware knowledge router for AI agents.
 
-`ai-loadout` is the dispatch table format and matching engine that lets AI agents load the right knowledge for the task at hand. Instead of dumping everything into context, you keep a tiny index and load payloads on demand.
+`ai-loadout` is the kernel of the Knowledge OS stack — dispatch table format, matching engine, hierarchical resolver, and agent runtime contract. Instead of dumping everything into context, you keep a tiny index and load payloads on demand.
 
 Think of it like a game loadout — you equip the agent with exactly the knowledge it needs before each mission.
 
 ## Install
 
 ```bash
-npm install @mcptoolshop/ai-loadout
+npm install -g @mcptoolshop/ai-loadout   # CLI
+npm install @mcptoolshop/ai-loadout       # library
 ```
 
 ## Core Concepts
@@ -88,76 +89,132 @@ CI minutes are finite...
 
 Frontmatter is the source of truth. The index is derived from it.
 
-## API
+## Agent Runtime (Primary API)
+
+The runtime is the canonical way agents consume a loadout. It wraps the full sequence: resolve layers → match task → decide what to load → record usage.
+
+### `planLoad(task, opts?)`
+
+Plan what to load for a given task. This is the primary agent-facing function.
+
+```typescript
+import { planLoad } from "@mcptoolshop/ai-loadout";
+
+const plan = planLoad("fix the CI workflow");
+// plan.preload   — core entries, load immediately
+// plan.onDemand  — domain matches, load when needed
+// plan.manual    — available via explicit lookup only
+```
+
+Returns a `LoadPlan` with:
+- `preload` / `onDemand` / `manual` — entries separated by load mode
+- `provenance` — which layer each entry came from
+- `budget` — token budget for the resolved index
+- `preloadTokens` / `onDemandTokens` — token cost totals
+- `layerNames` / `conflicts` — layer metadata
+
+### `recordLoad(entryId, trigger, mode, tokensEst, opts?)`
+
+Record that an agent loaded an entry. Enables observability (dead entries, budget drift, frequency tracking). Optional — only writes when `usagePath` is set in options.
+
+### `manualLookup(id, opts?)`
+
+Explicitly load a manual entry by ID from the resolved index.
+
+## Resolver
+
+Discovers and merges loadout indexes from a canonical layer stack:
+
+1. **global** — `~/.ai-loadout/index.json`
+2. **org** — explicit path or `$AI_LOADOUT_ORG`
+3. **project** — `<cwd>/.claude/loadout/index.json`
+4. **session** — explicit path or `$AI_LOADOUT_SESSION`
+
+Later layers win. Missing layers are normal.
+
+```typescript
+import { resolveLoadout, explainEntry } from "@mcptoolshop/ai-loadout";
+
+const { merged, layers, searched } = resolveLoadout();
+// merged.entries — deduplicated entries from all layers
+// merged.provenance — entryId → source layer name
+
+const why = explainEntry("github-actions", layers);
+// why.finalLayer, why.overrideChain, why.definitions
+```
+
+## Matching
 
 ### `matchLoadout(task, index)`
 
-Match a task description against a loadout index. Returns entries that should be loaded, ranked by match strength.
+Match a task description against a loadout index. Returns entries ranked by match strength.
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
 
 const results = matchLoadout("fix the CI workflow", index);
-// [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
+// [{ entry, score: 0.67, matchedKeywords: ["ci", "workflow"], reason, mode }]
 ```
 
 - Core entries always included (score 1.0)
 - Manual entries never auto-included
 - Domain entries scored by keyword overlap + pattern bonus
-- Results sorted by score descending
+- Results sorted by score descending, then by token cost ascending
 
 ### `lookupEntry(id, index)`
 
 Look up a specific entry by ID. For manual entries or explicit access.
 
-```typescript
-import { lookupEntry } from "@mcptoolshop/ai-loadout";
+## Observability
 
-const entry = lookupEntry("github-actions", index);
-```
+### `recordUsage()` / `readUsage()` / `summarizeUsage()`
 
-### `parseFrontmatter(content)`
+Append-only JSONL usage log. Never networked, never creepy.
 
-Parse YAML-like frontmatter from a payload file.
+### `findDeadEntries(index, events)`
 
-```typescript
-import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
+Find entries that have never been loaded.
 
-const { frontmatter, body } = parseFrontmatter(fileContent);
-if (frontmatter) {
-  console.log(frontmatter.id, frontmatter.keywords);
-}
-```
+### `findKeywordOverlaps(index)`
 
-### `serializeFrontmatter(fm)`
+Find keywords shared between entries (routing ambiguities).
 
-Serialize a `Frontmatter` object back to a string.
+### `analyzeBudget(index, usage?)`
+
+Token budget breakdown with observed-vs-estimated comparison.
+
+## Merge
+
+### `mergeIndexes(layers)`
+
+Deterministic merge for hierarchical loadouts. Returns a `MergedIndex` with provenance tracking and conflict reporting.
+
+## Utilities
+
+### `parseFrontmatter(content)` / `serializeFrontmatter(fm)`
+
+Parse and serialize YAML-like frontmatter from payload files.
 
 ### `validateIndex(index)`
 
-Validate structural integrity of a `LoadoutIndex`. Returns an array of issues.
-
-```typescript
-import { validateIndex } from "@mcptoolshop/ai-loadout";
-
-const issues = validateIndex(index);
-const errors = issues.filter(i => i.severity === "error");
-if (errors.length > 0) {
-  console.error("Index has errors:", errors);
-}
-```
-
-Checks: required fields, unique IDs, kebab-case format, summary bounds, keyword presence for domain entries, valid priorities, non-negative budgets.
+Validate structural integrity of a `LoadoutIndex`. Checks: required fields, unique IDs, kebab-case format, summary bounds, keyword presence for domain entries, valid priorities, non-negative budgets.
 
 ### `estimateTokens(text)`
 
 Estimate token count from text. Uses chars/4 heuristic.
 
-```typescript
-import { estimateTokens } from "@mcptoolshop/ai-loadout";
+## CLI
 
-const tokens = estimateTokens(fileContent); // ~250
 ```
+ai-loadout resolve                    Resolve layered loadouts
+ai-loadout explain <entry-id>         Explain why an entry resolved to its current state
+ai-loadout usage <jsonl>              Usage summary from event log
+ai-loadout dead <index> <jsonl>       Find entries never loaded
+ai-loadout overlaps <index>           Find keyword routing ambiguities
+ai-loadout budget <index> [jsonl]     Token budget breakdown
+```
+
+All commands support `--json` for scripting. Resolver commands accept `--project`, `--global`, `--org`, `--session`.
 
 ## Types
 
@@ -170,13 +227,21 @@ import type {
   ValidationIssue,
   Priority,       // "core" | "domain" | "manual"
   Triggers,       // { task, plan, edit }
+  LoadMode,       // "eager" | "lazy" | "manual"
   Budget,
+  UsageEvent,
+  MergeConflict,
+  MergedIndex,
+  LoadPlan,
+  ResolvedLoadout,
+  EntryExplanation,
 } from "@mcptoolshop/ai-loadout";
 ```
 
 ## Consumers
 
 - **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — CLAUDE.md optimizer for Claude Code. Uses ai-loadout for the dispatch table and matching.
+- **[@mcptoolshop/claude-memories](https://github.com/mcp-tool-shop-org/claude-memories)** — MEMORY.md optimizer for Claude Code. Generates dispatch tables from memory topic files.
 
 ## Security
 

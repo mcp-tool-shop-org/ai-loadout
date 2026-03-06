@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.2 — 2026-03-06
+
+- **README overhaul**: Document full API surface — agent runtime (`planLoad`, `recordLoad`, `manualLookup`), resolver, observability, merge, CLI commands
+- Add claude-memories to consumers list
+
 ## 1.4.1 — 2026-03-06
 
 - **Fix tokenizer**: hyphens now split into separate tokens (`claude-memories` → `claude` + `memories`), fixing keyword matching for hyphenated task descriptions
