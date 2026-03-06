@@ -1,8 +1,11 @@
 {
   "name": "@mcptoolshop/ai-loadout",
-  "version": "1.1.0",
-  "description": "Context-aware knowledge router for AI agents. Dispatch table, frontmatter spec, keyword matcher, token estimator.",
+  "version": "1.2.0",
+  "description": "Context-aware knowledge router for AI agents. Dispatch table, matcher, usage tracking, dead/overlap analysis, budget CLI.",
   "type": "module",
+  "bin": {
+    "ai-loadout": "./dist/cli.js"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

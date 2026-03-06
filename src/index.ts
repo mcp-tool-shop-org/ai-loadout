@@ -31,3 +31,11 @@ export { validateIndex } from "./validate.js";
 
 // ── Merge ─────────────────────────────────────────────────────
 export { mergeIndexes } from "./merge.js";
+
+// ── Usage ─────────────────────────────────────────────────────
+export { recordUsage, readUsage, summarizeUsage } from "./usage.js";
+export type { UsageSummary } from "./usage.js";
+
+// ── Analysis ──────────────────────────────────────────────────
+export { findDeadEntries, findKeywordOverlaps, analyzeBudget } from "./analysis.js";
+export type { DeadEntry, KeywordOverlap, BudgetBreakdown } from "./analysis.js";

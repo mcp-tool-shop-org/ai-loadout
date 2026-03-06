@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — 2026-03-06
+
+- **Usage tracking**: `recordUsage()`, `readUsage()`, `summarizeUsage()` for append-only JSONL logs
+- **Dead entry detection**: `findDeadEntries()` finds entries never loaded
+- **Keyword overlap analysis**: `findKeywordOverlaps()` finds routing ambiguities
+- **Budget breakdown**: `analyzeBudget()` with observed-vs-estimated comparison
+- **CLI**: `ai-loadout` command with `usage`, `dead`, `overlaps`, `budget` subcommands
+- All commands support `--json` output for scripting
+- 23 new tests (usage + analysis), 63 total
+
 ## 1.1.0 — 2026-03-06
 
 - **MatchResult enrichment**: `reason` (human-readable explanation) and `mode` (eager/lazy/manual)
