@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1 — 2026-03-06
+
+- **Fix tokenizer**: hyphens now split into separate tokens (`claude-memories` → `claude` + `memories`), fixing keyword matching for hyphenated task descriptions
+- Dogfooded end-to-end: install → index → resolve → planLoad against a real 32-entry workspace
+
 ## 1.4.0 — 2026-03-06
 
 - **Agent runtime contract**: `planLoad()`, `recordLoad()`, `manualLookup()` — the canonical agent integration API
