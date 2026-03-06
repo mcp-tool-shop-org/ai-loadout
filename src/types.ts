@@ -65,6 +65,7 @@ export interface ValidationIssue {
   severity: IssueSeverity;
   code: string;
   message: string;
+  hint?: string;
   entryId?: string;
 }
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/mcp-tool-shop-org/brand/main/logos/ai-loadout/readme.png" width="400" alt="ai-loadout">
+  <img src="logo.png" width="400" alt="ai-loadout">
 </p>
 
 <p align="center">
@@ -175,6 +175,17 @@ import type {
 ## Security
 
 This package is a pure data library. It does not access the filesystem, make network requests, or collect telemetry. All I/O is the consumer's responsibility.
+
+### Threat Model
+
+| Threat | Mitigation |
+|--------|------------|
+| Malformed frontmatter input | `parseFrontmatter()` returns `null` on invalid input — no exceptions, no eval |
+| Prototype pollution | Hand-rolled parser uses plain object literals, no `JSON.parse` of untrusted nested structures |
+| Index with bad data | `validateIndex()` catches structural issues before they propagate |
+| Regex DoS | No user-supplied regex — patterns are matched as plain string lookups |
+
+See [SECURITY.md](SECURITY.md) for the full security policy.
 
 ---
 

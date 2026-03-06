@@ -60,6 +60,7 @@ export function validateIndex(index: LoadoutIndex): ValidationIssue[] {
         severity: "error",
         code: "MISSING_ID",
         message: "Entry is missing an id field",
+        hint: "Every entry needs a unique kebab-case id",
       });
       continue;
     }
@@ -91,6 +92,7 @@ export function validateIndex(index: LoadoutIndex): ValidationIssue[] {
         severity: "error",
         code: "MISSING_PATH",
         message: `Entry "${entry.id}" has no path`,
+        hint: "Set path to the relative file location (e.g. .claude/rules/my-rule.md)",
         entryId: entry.id,
       });
     }
@@ -128,6 +130,7 @@ export function validateIndex(index: LoadoutIndex): ValidationIssue[] {
         severity: "error",
         code: "EMPTY_KEYWORDS",
         message: `Domain entry "${entry.id}" has no keywords — cannot be routed`,
+        hint: "Add keywords to frontmatter so the matcher can find this entry",
         entryId: entry.id,
       });
     }
