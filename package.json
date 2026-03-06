@@ -1,0 +1,46 @@
+{
+  "name": "@mcptoolshop/ai-loadout",
+  "version": "1.0.0",
+  "description": "Context-aware knowledge router for AI agents. Dispatch table, frontmatter spec, keyword matcher, token estimator.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "verify": "tsc --noEmit && node --test dist/tests/*.test.js",
+    "test": "node --test dist/tests/*.test.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai",
+    "agent",
+    "loadout",
+    "knowledge",
+    "routing",
+    "dispatch",
+    "context",
+    "frontmatter",
+    "mcp"
+  ],
+  "author": "mcp-tool-shop",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
