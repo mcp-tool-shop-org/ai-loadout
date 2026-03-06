@@ -16,6 +16,8 @@ import { fileURLToPath } from "node:url";
 import type { LoadoutIndex } from "./types.js";
 import { readUsage, summarizeUsage } from "./usage.js";
 import { findDeadEntries, findKeywordOverlaps, analyzeBudget } from "./analysis.js";
+import { resolveLoadout, explainEntry } from "./resolve.js";
+import type { ResolveOptions } from "./resolve.js";
 
 // ── Colors ────────────────────────────────────────────────────
 const BOLD = "\x1b[1m";
@@ -46,6 +48,27 @@ function positionalArgs(args: string[]): string[] {
   return args.filter((a) => !a.startsWith("--"));
 }
 
+function getFlagValue(args: string[], flag: string): string | undefined {
+  const prefix = `--${flag}=`;
+  for (const a of args) {
+    if (a.startsWith(prefix)) return a.slice(prefix.length);
+  }
+  const idx = args.indexOf(`--${flag}`);
+  if (idx !== -1 && idx + 1 < args.length && !args[idx + 1].startsWith("--")) {
+    return args[idx + 1];
+  }
+  return undefined;
+}
+
+function getResolveOpts(args: string[]): ResolveOptions {
+  return {
+    projectRoot: getFlagValue(args, "project"),
+    globalDir: getFlagValue(args, "global"),
+    orgPath: getFlagValue(args, "org"),
+    sessionPath: getFlagValue(args, "session"),
+  };
+}
+
 function loadIndex(path: string): LoadoutIndex {
   if (!existsSync(path)) {
     fail("FILE_NOT_FOUND", `Index not found: ${path}`);
@@ -69,6 +92,8 @@ function printHelp() {
 ${BOLD}ai-loadout${RESET} v${getVersion()} — Knowledge router for AI agents
 
 ${BOLD}Usage:${RESET}
+  ai-loadout resolve                    Resolve layered loadouts (global → org → project → session)
+  ai-loadout explain <entry-id>         Explain why an entry resolved to its current state
   ai-loadout usage <jsonl>              Usage summary from event log
   ai-loadout dead <index> <jsonl>       Find entries never loaded
   ai-loadout overlaps <index>           Find keyword routing ambiguities
@@ -78,8 +103,15 @@ ${BOLD}Options:${RESET}
   --json       Output as JSON
   --help       Show this help
   --version    Show version
+  --project    Project root for resolve/explain (default: cwd)
+  --global     Global config dir for resolve/explain (default: ~/.ai-loadout)
+  --org        Org-level index path for resolve/explain (or $AI_LOADOUT_ORG)
+  --session    Session overlay index path for resolve/explain (or $AI_LOADOUT_SESSION)
 
 ${BOLD}Examples:${RESET}
+  ai-loadout resolve
+  ai-loadout resolve --json
+  ai-loadout explain github-actions
   ai-loadout usage .claude/loadout-usage.jsonl
   ai-loadout dead .claude/rules/index.json .claude/loadout-usage.jsonl
   ai-loadout overlaps .claude/rules/index.json
@@ -234,6 +266,116 @@ function cmdBudget(args: string[]) {
   log("");
 }
 
+function cmdResolve(args: string[]) {
+  const opts = getResolveOpts(args);
+  const json = hasFlag(args, "json");
+  const result = resolveLoadout(opts);
+
+  if (json) {
+    log(JSON.stringify({
+      layers: result.searched,
+      entries: result.merged.entries.map((e) => ({
+        id: e.id,
+        priority: e.priority,
+        tokens: e.tokens_est,
+        source: result.merged.provenance[e.id],
+      })),
+      conflicts: result.merged.conflicts,
+      budget: result.merged.budget,
+    }, null, 2));
+    return;
+  }
+
+  // Show searched layers
+  log(`\n${BOLD}Layer Discovery${RESET}\n`);
+  for (const s of result.searched) {
+    if (s.found) {
+      ok(`${s.name.padEnd(10)} ${DIM}${s.path}${RESET}`);
+    } else {
+      log(`  ${DIM}—${RESET} ${s.name.padEnd(10)} ${DIM}${s.path} (not found)${RESET}`);
+    }
+  }
+
+  if (result.layers.length === 0) {
+    log(`\n  ${YELLOW}No loadout indexes found.${RESET}`);
+    log(`  ${DIM}Create .claude/loadout/index.json or ~/.ai-loadout/index.json${RESET}\n`);
+    return;
+  }
+
+  // Show merged entries with provenance
+  log(`\n${BOLD}Resolved Entries${RESET} (${result.merged.entries.length} entries from ${result.layers.length} layer${result.layers.length === 1 ? "" : "s"})\n`);
+  log(`  ${"Entry".padEnd(30)} ${"Priority".padEnd(10)} ${"Tokens".padStart(8)}  Source`);
+  log(`  ${"─".repeat(30)} ${"─".repeat(10)} ${"─".repeat(8)}  ${"─".repeat(10)}`);
+
+  for (const entry of result.merged.entries) {
+    const source = result.merged.provenance[entry.id] ?? "?";
+    const priorityColor = entry.priority === "core" ? RED : entry.priority === "domain" ? CYAN : DIM;
+    log(`  ${entry.id.padEnd(30)} ${priorityColor}${entry.priority.padEnd(10)}${RESET} ${String(entry.tokens_est).padStart(8)}  ${source}`);
+  }
+
+  // Show conflicts
+  if (result.merged.conflicts.length > 0) {
+    log(`\n${BOLD}Overrides${RESET} (${result.merged.conflicts.length} entries defined in multiple layers)\n`);
+    for (const c of result.merged.conflicts) {
+      log(`  ${YELLOW}${c.entryId}${RESET} → ${c.layers.join(" → ")} ${DIM}(${c.resolution})${RESET}`);
+    }
+  }
+
+  // Budget summary
+  log(`\n  Total: ${result.merged.entries.length} entries, ${result.merged.budget.always_loaded_est + result.merged.budget.on_demand_total_est} tokens`);
+  log(`  Core: ${result.merged.budget.always_loaded_est} tokens (always loaded), On-demand: ${result.merged.budget.on_demand_total_est} tokens\n`);
+}
+
+function cmdExplain(args: string[]) {
+  const positional = positionalArgs(args);
+  if (positional.length < 1) {
+    fail("MISSING_ARG", "Usage: ai-loadout explain <entry-id>", "Run 'ai-loadout resolve' to see available entries");
+  }
+
+  const entryId = positional[0];
+  const opts = getResolveOpts(args);
+  const json = hasFlag(args, "json");
+
+  const { layers } = resolveLoadout(opts);
+  const explanation = explainEntry(entryId, layers);
+
+  if (!explanation) {
+    if (json) {
+      log(JSON.stringify({ error: "NOT_FOUND", entryId }, null, 2));
+      process.exit(1);
+    }
+    fail("NOT_FOUND", `Entry "${entryId}" not found in any layer`, "Run 'ai-loadout resolve' to see available entries");
+  }
+
+  if (json) {
+    log(JSON.stringify(explanation, null, 2));
+    return;
+  }
+
+  log(`\n${BOLD}Entry Explanation: ${CYAN}${explanation.id}${RESET}\n`);
+
+  if (explanation.isConflict) {
+    log(`  ${YELLOW}Defined in ${explanation.definitions.length} layers${RESET} — final version from ${GREEN}${explanation.finalLayer}${RESET}`);
+    log(`  Override chain: ${explanation.overrideChain.join(" → ")}\n`);
+  } else {
+    log(`  Defined in: ${GREEN}${explanation.finalLayer}${RESET} (no overrides)\n`);
+  }
+
+  for (const def of explanation.definitions) {
+    const isWinner = def.layer === explanation.finalLayer;
+    const marker = isWinner ? `${GREEN}★${RESET}` : `${DIM}○${RESET}`;
+    const layerLabel = isWinner ? `${GREEN}${def.layer}${RESET}` : `${DIM}${def.layer}${RESET}`;
+
+    log(`  ${marker} ${layerLabel}`);
+    log(`    Summary:  ${isWinner ? def.summary : `${DIM}${def.summary}${RESET}`}`);
+    log(`    Priority: ${def.priority}`);
+    log(`    Tokens:   ${def.tokens}`);
+    log(`    Keywords: ${def.keywords.join(", ") || "(none)"}`);
+    log(`    Path:     ${def.path}`);
+    log("");
+  }
+}
+
 // ── Main ──────────────────────────────────────────────────────
 const args = process.argv.slice(2);
 
@@ -251,6 +393,12 @@ const cmd = args[0];
 const cmdArgs = args.slice(1);
 
 switch (cmd) {
+  case "resolve":
+    cmdResolve(cmdArgs);
+    break;
+  case "explain":
+    cmdExplain(cmdArgs);
+    break;
   case "usage":
     cmdUsage(cmdArgs);
     break;

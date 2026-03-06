@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0 — 2026-03-06
+
+- **Hierarchical resolver**: `discoverLayers()`, `resolveLoadout()` for layered indexes (global → org → project → session)
+- **Entry explanation**: `explainEntry()` traces an entry's decision path across layers ("why did this rule win?")
+- **CLI**: `ai-loadout resolve` and `ai-loadout explain <id>` commands
+- **CLI options**: `--project`, `--global`, `--org`, `--session` for resolver configuration
+- **Environment variables**: `$AI_LOADOUT_ORG`, `$AI_LOADOUT_SESSION` for layer discovery
+- SPEC.md updated with resolver semantics and CLI reference
+- 17 new tests (resolver), 80 total
+
 ## 1.2.0 — 2026-03-06
 
 - **Usage tracking**: `recordUsage()`, `readUsage()`, `summarizeUsage()` for append-only JSONL logs

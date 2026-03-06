@@ -1,7 +1,7 @@
 # ai-loadout Specification
 
 > Context-aware knowledge router for AI agents.
-> Version: 1.1.0
+> Version: 1.3.0
 
 ## Overview
 
@@ -208,10 +208,88 @@ For observability (append-only log, local-only, never networked):
 | `tokensEst` | `number` | Estimated token cost |
 | `sourceLayer` | `string?` | Which hierarchy layer (future) |
 
+## Resolver
+
+`discoverLayers(opts?)` → `{ layers, searched }`
+`resolveLoadout(opts?)` → `ResolvedLoadout`
+`explainEntry(entryId, layers)` → `EntryExplanation | null`
+
+The resolver discovers, loads, and merges layered loadout indexes. It answers: "what is the merged state?" and "why did this entry win?"
+
+### Canonical Layer Stack
+
+Layers are checked in a fixed order. Later layers override earlier ones for the same entry ID.
+
+| Layer | Location | Override |
+|-------|----------|----------|
+| `global` | `~/.ai-loadout/index.json` | Lowest priority |
+| `org` | Explicit path or `$AI_LOADOUT_ORG` | Overrides global |
+| `project` | `<cwd>/.claude/loadout/index.json` | Overrides org |
+| `session` | Explicit path or `$AI_LOADOUT_SESSION` | Highest priority |
+
+### Discovery Rules
+
+- Missing layers are normal — most setups only have project-level
+- Malformed files are treated as missing (skipped silently)
+- The resolver never guesses; it looks in fixed places in a fixed order
+- Environment variables: `$AI_LOADOUT_ORG`, `$AI_LOADOUT_SESSION`
+
+### ResolvedLoadout
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `merged` | `MergedIndex` | The fully merged index with provenance |
+| `layers` | `DiscoveredLayer[]` | Layers that were found and loaded |
+| `searched` | `SearchedLayer[]` | All locations checked (found or not) |
+
+### EntryExplanation
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` | Entry ID |
+| `finalLayer` | `string` | Which layer the winning version came from |
+| `definitions` | `EntryDefinition[]` | Every layer that defined this entry (in order) |
+| `overrideChain` | `string[]` | Layer names in override order |
+| `isConflict` | `boolean` | True if defined in multiple layers |
+
+### EntryDefinition
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `layer` | `string` | Layer name |
+| `summary` | `string` | Entry summary in this layer |
+| `priority` | `Priority` | Entry priority in this layer |
+| `tokens` | `number` | Token estimate in this layer |
+| `keywords` | `string[]` | Keywords in this layer |
+| `path` | `string` | Payload path in this layer |
+
+## CLI
+
+`ai-loadout` provides diagnostic commands. All support `--json` for scripting.
+
+| Command | Description |
+|---------|-------------|
+| `resolve` | Show merged index from all layers with provenance |
+| `explain <id>` | Show decision path for one entry across layers |
+| `usage <jsonl>` | Usage summary from event log |
+| `dead <index> <jsonl>` | Find entries never loaded |
+| `overlaps <index>` | Find keyword routing ambiguities |
+| `budget <index> [jsonl]` | Token budget breakdown |
+
+### Resolver CLI Options
+
+| Flag | Description |
+|------|-------------|
+| `--project <path>` | Project root (default: cwd) |
+| `--global <path>` | Global config dir (default: `~/.ai-loadout`) |
+| `--org <path>` | Org-level index path |
+| `--session <path>` | Session overlay index path |
+
 ## Design Constraints
 
 - Zero production dependencies
 - Pure TypeScript ESM
 - Node ≥ 20
 - Deterministic: same inputs → same outputs (except `generated` timestamps)
-- Kernel only: no CLI, no filesystem access, no I/O
+- Core types, matcher, validator, and merge are pure functions (no I/O)
+- Resolver and usage modules perform filesystem I/O for practical use

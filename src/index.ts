@@ -39,3 +39,14 @@ export type { UsageSummary } from "./usage.js";
 // ── Analysis ──────────────────────────────────────────────────
 export { findDeadEntries, findKeywordOverlaps, analyzeBudget } from "./analysis.js";
 export type { DeadEntry, KeywordOverlap, BudgetBreakdown } from "./analysis.js";
+
+// ── Resolver ─────────────────────────────────────────────────
+export { discoverLayers, resolveLoadout, explainEntry } from "./resolve.js";
+export type {
+  DiscoveredLayer,
+  SearchedLayer,
+  ResolvedLoadout,
+  EntryDefinition,
+  EntryExplanation,
+  ResolveOptions,
+} from "./resolve.js";
