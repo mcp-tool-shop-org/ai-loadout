@@ -13,7 +13,8 @@ sidebar:
 ## Install
 
 ```bash
-npm install @mcptoolshop/ai-loadout
+npm install -g @mcptoolshop/ai-loadout   # CLI
+npm install @mcptoolshop/ai-loadout       # library
 ```
 
 ## Your first dispatch table
@@ -59,20 +60,29 @@ for (const { entry, score, matchedKeywords } of results) {
 // github-actions: 0.67 (matched: ci, workflow)
 ```
 
-## Validate your index
+## Plan a load (agent runtime)
+
+The primary agent-facing API — resolve layers, match task, decide what to load:
 
 ```typescript
-import { validateIndex } from "@mcptoolshop/ai-loadout";
+import { planLoad } from "@mcptoolshop/ai-loadout";
 
-const issues = validateIndex(index);
-if (issues.length > 0) {
-  for (const issue of issues) {
-    console.error(`[${issue.severity}] ${issue.code}: ${issue.message}`);
-    if (issue.hint) console.error(`  hint: ${issue.hint}`);
-  }
-}
+const plan = planLoad("fix the CI workflow");
+// plan.preload   — core entries, load immediately
+// plan.onDemand  — domain matches, load when needed
+// plan.manual    — available via explicit lookup only
+```
+
+## Use the CLI
+
+Resolve your layered loadouts and inspect entries:
+
+```bash
+ai-loadout resolve                       # show all layers and entries
+ai-loadout explain github-actions        # trace an entry's decision path
+ai-loadout budget .claude/rules/index.json  # token budget breakdown
 ```
 
 ## Next steps
 
-Read [Concepts](/ai-loadout/handbook/concepts/) to understand priority tiers, trigger phases, and the budget model.
+Read [Concepts](/ai-loadout/handbook/concepts/) to understand priority tiers, the resolver, and the agent runtime.

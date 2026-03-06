@@ -1,6 +1,6 @@
 ---
 title: Concepts
-description: Dispatch tables, priority tiers, trigger phases, and the budget model.
+description: Dispatch tables, priorities, resolver, runtime, load modes, and the budget model.
 sidebar:
   order: 2
 ---
@@ -85,3 +85,44 @@ Content here...
 **Frontmatter is the source of truth.** The index is derived from it, not the other way around. If they drift, validation catches it.
 
 The frontmatter parser is hand-rolled — no YAML library, no `eval`, no prototype pollution vectors. It handles strings, inline arrays `[a, b]`, booleans, and one-level nested objects.
+
+## Load Modes
+
+Each matched entry gets a load mode that controls how it enters context:
+
+| Mode | Maps from | Behavior |
+|------|-----------|----------|
+| `eager` | `core` priority | Preloaded immediately — always in context |
+| `lazy` | `domain` priority | Available on demand — loaded when the task matches |
+| `manual` | `manual` priority | Never auto-loaded — requires explicit lookup |
+
+## The Resolver
+
+The resolver discovers and merges loadout indexes from a canonical layer stack:
+
+1. **global** — `~/.ai-loadout/index.json` (user-wide preferences)
+2. **org** — explicit path or `$AI_LOADOUT_ORG` (team conventions)
+3. **project** — `<cwd>/.claude/loadout/index.json` (repo contracts)
+4. **session** — explicit path or `$AI_LOADOUT_SESSION` (ephemeral overrides)
+
+Later layers win. Missing layers are normal — most setups only have project-level. The resolver never guesses; it looks in fixed places in a fixed order.
+
+## Merge Semantics
+
+When two layers define the same entry ID, the later layer overrides the earlier one. The merged index tracks **provenance** (which layer each entry came from) and **conflicts** (entries defined in multiple layers).
+
+## Agent Runtime
+
+The runtime wraps the full sequence: resolve layers → match task → separate by load mode. Agents integrate against one function:
+
+- **`planLoad(task)`** returns a `LoadPlan` with `preload` (eager), `onDemand` (lazy), and `manual` entries, plus provenance, budget, and token costs.
+
+This is the canonical agent-facing API. Everything else (resolve, merge, match, explain) is machinery that the runtime abstracts over.
+
+## Observability
+
+Usage events are recorded to an append-only JSONL log. This enables:
+
+- **Dead entry detection** — entries that have never been loaded
+- **Keyword overlap analysis** — routing ambiguities where multiple entries share keywords
+- **Budget drift** — comparing estimated vs. observed token costs
