@@ -9,26 +9,26 @@
 <p align="center">
   <a href="https://github.com/mcp-tool-shop-org/ai-loadout/actions/workflows/ci.yml"><img src="https://github.com/mcp-tool-shop-org/ai-loadout/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.npmjs.com/package/@mcptoolshop/ai-loadout"><img src="https://img.shields.io/npm/v/@mcptoolshop/ai-loadout" alt="npm"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT 许可证"></a>
 </p>
 
-Context-aware knowledge router for AI agents.
+面向 AI 代理的上下文感知知识路由器。
 
-`ai-loadout` is the dispatch table format and matching engine that lets AI agents load the right knowledge for the task at hand. Instead of dumping everything into context, you keep a tiny index and load payloads on demand.
+`ai-loadout` 是一种调度表格式和匹配引擎，让 AI 代理能够为当前任务加载正确的知识。无需将所有内容都塞入上下文，你只需维护一个小型索引，按需加载有效负载。
 
-Think of it like a game loadout — you equip the agent with exactly the knowledge it needs before each mission.
+可以把它想象成游戏装备系统 — 在每次任务前为代理装备恰好需要的知识。
 
-## Install
+## 安装
 
 ```bash
 npm install @mcptoolshop/ai-loadout
 ```
 
-## Core Concepts
+## 核心概念
 
-### The Dispatch Table
+### 调度表
 
-A `LoadoutIndex` is a structured index of knowledge payloads:
+`LoadoutIndex` 是知识有效负载的结构化索引：
 
 ```json
 {
@@ -56,17 +56,17 @@ A `LoadoutIndex` is a structured index of knowledge payloads:
 }
 ```
 
-### Priority Tiers
+### 优先级层级
 
-| Tier | Behavior | Example |
-|------|----------|---------|
-| `core` | Always loaded | "never skip tests to make CI green" |
-| `domain` | Loaded when task keywords match | CI rules when editing workflows |
-| `manual` | Never auto-loaded, explicit lookup only | Obscure platform gotchas |
+| 层级 | 行为 | 示例 |
+|------|------|------|
+| `core` | 始终加载 | "绝不跳过测试来让 CI 通过" |
+| `domain` | 当任务关键词匹配时加载 | 编辑 workflow 时的 CI 规则 |
+| `manual` | 从不自动加载，仅限显式查找 | 罕见的平台问题 |
 
-### Payload Frontmatter
+### 有效负载 Frontmatter
 
-Each payload file carries its own routing metadata:
+每个有效负载文件携带自己的路由元数据：
 
 ```markdown
 ---
@@ -84,13 +84,13 @@ triggers:
 CI minutes are finite...
 ```
 
-Frontmatter is the source of truth. The index is derived from it.
+Frontmatter 是唯一的事实来源。索引从中派生。
 
 ## API
 
 ### `matchLoadout(task, index)`
 
-Match a task description against a loadout index. Returns entries that should be loaded, ranked by match strength.
+将任务描述与 loadout 索引进行匹配。返回应加载的条目，按匹配强度排序。
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
@@ -99,14 +99,14 @@ const results = matchLoadout("fix the CI workflow", index);
 // [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
 ```
 
-- Core entries always included (score 1.0)
-- Manual entries never auto-included
-- Domain entries scored by keyword overlap + pattern bonus
-- Results sorted by score descending
+- core 条目始终包含（得分 1.0）
+- manual 条目从不自动包含
+- domain 条目按关键词重叠度 + 模式加分评分
+- 结果按得分降序排列
 
 ### `lookupEntry(id, index)`
 
-Look up a specific entry by ID. For manual entries or explicit access.
+通过 ID 查找特定条目。用于 manual 条目或显式访问。
 
 ```typescript
 import { lookupEntry } from "@mcptoolshop/ai-loadout";
@@ -116,7 +116,7 @@ const entry = lookupEntry("github-actions", index);
 
 ### `parseFrontmatter(content)`
 
-Parse YAML-like frontmatter from a payload file.
+从有效负载文件中解析类 YAML 格式的 frontmatter。
 
 ```typescript
 import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
@@ -129,11 +129,11 @@ if (frontmatter) {
 
 ### `serializeFrontmatter(fm)`
 
-Serialize a `Frontmatter` object back to a string.
+将 `Frontmatter` 对象序列化回字符串。
 
 ### `validateIndex(index)`
 
-Validate structural integrity of a `LoadoutIndex`. Returns an array of issues.
+验证 `LoadoutIndex` 的结构完整性。返回问题数组。
 
 ```typescript
 import { validateIndex } from "@mcptoolshop/ai-loadout";
@@ -145,11 +145,11 @@ if (errors.length > 0) {
 }
 ```
 
-Checks: required fields, unique IDs, kebab-case format, summary bounds, keyword presence for domain entries, valid priorities, non-negative budgets.
+检查项：必填字段、唯一 ID、kebab-case 格式、摘要长度限制、domain 条目的关键词存在性、有效优先级、非负预算。
 
 ### `estimateTokens(text)`
 
-Estimate token count from text. Uses chars/4 heuristic.
+估算文本的 token 数量。使用字符数/4 的启发式方法。
 
 ```typescript
 import { estimateTokens } from "@mcptoolshop/ai-loadout";
@@ -157,7 +157,7 @@ import { estimateTokens } from "@mcptoolshop/ai-loadout";
 const tokens = estimateTokens(fileContent); // ~250
 ```
 
-## Types
+## 类型定义
 
 ```typescript
 import type {
@@ -172,25 +172,25 @@ import type {
 } from "@mcptoolshop/ai-loadout";
 ```
 
-## Consumers
+## 使用者
 
-- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — CLAUDE.md optimizer for Claude Code. Uses ai-loadout for the dispatch table and matching.
+- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Claude Code 的 CLAUDE.md 优化器。使用 ai-loadout 作为调度表和匹配引擎。
 
-## Security
+## 安全性
 
-This package is a pure data library. It does not access the filesystem, make network requests, or collect telemetry. All I/O is the consumer's responsibility.
+此包是一个纯数据库。它不访问文件系统、不发起网络请求、不收集遥测数据。所有 I/O 由使用者负责。
 
-### Threat Model
+### 威胁模型
 
-| Threat | Mitigation |
-|--------|------------|
-| Malformed frontmatter input | `parseFrontmatter()` returns `null` on invalid input — no exceptions, no eval |
-| Prototype pollution | Hand-rolled parser uses plain object literals, no `JSON.parse` of untrusted nested structures |
-| Index with bad data | `validateIndex()` catches structural issues before they propagate |
-| Regex DoS | No user-supplied regex — patterns are matched as plain string lookups |
+| 威胁 | 缓解措施 |
+|------|----------|
+| 格式错误的 frontmatter 输入 | `parseFrontmatter()` 在无效输入时返回 `null` — 无异常、无 eval |
+| 原型污染 | 手动解析器使用普通对象字面量，不对不可信的嵌套结构使用 `JSON.parse` |
+| 包含错误数据的索引 | `validateIndex()` 在问题扩散前检测结构性问题 |
+| Regex DoS | 无用户提供的正则表达式 — 模式作为纯字符串查找进行匹配 |
 
-See [SECURITY.md](SECURITY.md) for the full security policy.
+完整安全策略请参阅 [SECURITY.md](SECURITY.md)。
 
 ---
 
-Built by [MCP Tool Shop](https://mcp-tool-shop.github.io/)
+由 [MCP Tool Shop](https://mcp-tool-shop.github.io/) 构建
