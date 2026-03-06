@@ -1,7 +1,7 @@
 # ai-loadout Specification
 
 > Context-aware knowledge router for AI agents.
-> Version: 1.3.0
+> Version: 1.4.0
 
 ## Overview
 
@@ -285,6 +285,39 @@ Layers are checked in a fixed order. Later layers override earlier ones for the 
 | `--org <path>` | Org-level index path |
 | `--session <path>` | Session overlay index path |
 
+## Agent Runtime
+
+`planLoad(task, opts?)` → `LoadPlan`
+`recordLoad(entryId, trigger, mode, tokensEst, opts?)` → `void`
+`manualLookup(id, opts?)` → `LoadoutEntry | undefined`
+
+The runtime is the primary agent-facing API. It wraps the full sequence: resolve → match → decide → record.
+
+### LoadPlan
+
+| Field | Type | Stability | Description |
+|-------|------|-----------|-------------|
+| `preload` | `MatchResult[]` | Stable | Core entries — load immediately |
+| `onDemand` | `MatchResult[]` | Stable | Domain entries — load when task matches |
+| `manual` | `LoadoutEntry[]` | Stable | Manual entries — explicit lookup only |
+| `provenance` | `Record<string, string>` | Stable | entryId → source layer |
+| `budget` | `Budget` | Stable | Token budget from resolved index |
+| `conflicts` | `MergeConflict[]` | Stable | Entries overridden across layers |
+| `layerNames` | `string[]` | Stable | Contributing layer names |
+| `preloadTokens` | `number` | Stable | Sum of preload entry tokens |
+| `onDemandTokens` | `number` | Stable | Sum of on-demand entry tokens |
+
+### RuntimeOptions
+
+Extends `ResolveOptions` with:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `usagePath` | `string?` | JSONL file path for usage recording |
+| `taskHash` | `string?` | Session-local task identifier |
+
+See `AGENT_CONTRACT.md` for full integration guide.
+
 ## Design Constraints
 
 - Zero production dependencies
@@ -292,4 +325,4 @@ Layers are checked in a fixed order. Later layers override earlier ones for the 
 - Node ≥ 20
 - Deterministic: same inputs → same outputs (except `generated` timestamps)
 - Core types, matcher, validator, and merge are pure functions (no I/O)
-- Resolver and usage modules perform filesystem I/O for practical use
+- Resolver, runtime, and usage modules perform filesystem I/O for practical use

@@ -50,3 +50,7 @@ export type {
   EntryExplanation,
   ResolveOptions,
 } from "./resolve.js";
+
+// ── Runtime (Agent Contract) ─────────────────────────────────
+export { planLoad, recordLoad, manualLookup } from "./runtime.js";
+export type { RuntimeOptions, LoadPlan } from "./runtime.js";

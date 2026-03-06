@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 — 2026-03-06
+
+- **Agent runtime contract**: `planLoad()`, `recordLoad()`, `manualLookup()` — the canonical agent integration API
+- **LoadPlan**: stable output shape with preload/onDemand/manual separation, provenance, budget, token costs
+- **AGENT_CONTRACT.md**: portable integration guide for Claude agents, MCP servers, CLIs, and editor extensions
+- SPEC.md updated with runtime section and LoadPlan schema
+- 13 new tests (runtime), 93 total
+
 ## 1.3.0 — 2026-03-06
 
 - **Hierarchical resolver**: `discoverLayers()`, `resolveLoadout()` for layered indexes (global → org → project → session)

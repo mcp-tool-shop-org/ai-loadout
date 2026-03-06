@@ -1,7 +1,7 @@
 {
   "name": "@mcptoolshop/ai-loadout",
-  "version": "1.3.0",
-  "description": "Context-aware knowledge router for AI agents. Dispatch table, matcher, hierarchical resolver, usage tracking, analysis CLI.",
+  "version": "1.4.0",
+  "description": "Context-aware knowledge router for AI agents. Dispatch table, matcher, hierarchical resolver, agent runtime contract, CLI.",
   "type": "module",
   "bin": {
     "ai-loadout": "./dist/cli.js"
@@ -26,6 +26,7 @@
     "README.md",
     "CHANGELOG.md",
     "SPEC.md",
+    "AGENT_CONTRACT.md",
     "LICENSE",
     "SECURITY.md",
     "logo.png"
