@@ -18,6 +18,7 @@ import { readUsage, summarizeUsage } from "./usage.js";
 import { findDeadEntries, findKeywordOverlaps, analyzeBudget } from "./analysis.js";
 import { resolveLoadout, explainEntry } from "./resolve.js";
 import type { ResolveOptions } from "./resolve.js";
+import { validateIndex } from "./validate.js";
 
 // ── Colors ────────────────────────────────────────────────────
 const BOLD = "\x1b[1m";
@@ -73,7 +74,11 @@ function loadIndex(path: string): LoadoutIndex {
   if (!existsSync(path)) {
     fail("FILE_NOT_FOUND", `Index not found: ${path}`);
   }
-  return JSON.parse(readFileSync(path, "utf-8")) as LoadoutIndex;
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as LoadoutIndex;
+  } catch (e) {
+    fail("PARSE_ERROR", `Failed to parse index: ${path}`, (e as Error).message);
+  }
 }
 
 function getVersion(): string {
@@ -98,6 +103,7 @@ ${BOLD}Usage:${RESET}
   ai-loadout dead <index> <jsonl>       Find entries never loaded
   ai-loadout overlaps <index>           Find keyword routing ambiguities
   ai-loadout budget <index> [jsonl]     Token budget breakdown
+  ai-loadout validate <index>           Validate index structure
 
 ${BOLD}Options:${RESET}
   --json       Output as JSON
@@ -115,6 +121,7 @@ ${BOLD}Examples:${RESET}
   ai-loadout usage .claude/loadout-usage.jsonl
   ai-loadout dead .claude/rules/index.json .claude/loadout-usage.jsonl
   ai-loadout overlaps .claude/rules/index.json
+  ai-loadout validate .claude/rules/index.json
   ai-loadout budget .claude/rules/index.json .claude/loadout-usage.jsonl
 `);
 }
@@ -266,6 +273,52 @@ function cmdBudget(args: string[]) {
   log("");
 }
 
+function cmdValidate(args: string[]) {
+  const positional = positionalArgs(args);
+  if (positional.length < 1) {
+    fail("MISSING_ARG", "Usage: ai-loadout validate <index>");
+  }
+
+  const index = loadIndex(resolve(positional[0]));
+  const issues = validateIndex(index);
+  const json = hasFlag(args, "json");
+
+  if (json) {
+    log(JSON.stringify({
+      valid: issues.filter((i) => i.severity === "error").length === 0,
+      errors: issues.filter((i) => i.severity === "error").length,
+      warnings: issues.filter((i) => i.severity === "warning").length,
+      issues,
+    }, null, 2));
+    return;
+  }
+
+  const errors = issues.filter((i) => i.severity === "error");
+  const warnings = issues.filter((i) => i.severity === "warning");
+
+  if (issues.length === 0) {
+    ok(`Index is valid (${index.entries.length} entries)`);
+    return;
+  }
+
+  log(`\n${BOLD}Validation Results${RESET}\n`);
+
+  for (const issue of errors) {
+    log(`  ${RED}✗ [${issue.code}]${RESET} ${issue.message}`);
+    if (issue.hint) log(`    ${DIM}${issue.hint}${RESET}`);
+  }
+
+  for (const issue of warnings) {
+    warn(`[${issue.code}] ${issue.message}`);
+  }
+
+  log(`\n  ${errors.length} error(s), ${warnings.length} warning(s)`);
+
+  if (errors.length > 0) {
+    process.exit(1);
+  }
+}
+
 function cmdResolve(args: string[]) {
   const opts = getResolveOpts(args);
   const json = hasFlag(args, "json");
@@ -410,6 +463,9 @@ switch (cmd) {
     break;
   case "budget":
     cmdBudget(cmdArgs);
+    break;
+  case "validate":
+    cmdValidate(cmdArgs);
     break;
   default:
     fail("UNKNOWN_COMMAND", `Unknown command: ${cmd}`, "Run ai-loadout --help for usage");

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.3 — 2026-03-25
+
+- **`validate` CLI command**: validate index structure from the command line (`ai-loadout validate <index>`)
+- **Fix**: `loadIndex()` now emits structured error on malformed JSON instead of raw stack trace
+
 ## 1.4.2 — 2026-03-06
 
 - **README overhaul**: Document full API surface — agent runtime (`planLoad`, `recordLoad`, `manualLookup`), resolver, observability, merge, CLI commands
