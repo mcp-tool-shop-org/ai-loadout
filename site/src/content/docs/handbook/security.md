@@ -7,15 +7,15 @@ sidebar:
 
 ## Attack Surface
 
-AI Loadout is a pure data library with near-zero attack surface:
+AI Loadout has a minimal attack surface:
 
-- **No filesystem access** — does not read or write files
+- **Limited filesystem access** — the usage module appends to a local JSONL log and the resolver reads index files from canonical layer paths; no arbitrary file access
 - **No network access** — makes no HTTP requests, opens no sockets
 - **No code execution** — no `eval`, `Function()`, or dynamic imports
 - **No telemetry** — collects and transmits nothing
 - **No native dependencies** — pure TypeScript, zero production deps
 
-All I/O is the consumer's responsibility.
+The core matching, merging, and validation modules are pure functions with no side effects.
 
 ## Threat Model
 

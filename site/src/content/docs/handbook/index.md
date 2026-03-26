@@ -13,6 +13,7 @@ Welcome to the AI Loadout handbook. This is the complete guide to the Knowledge 
 - **[Concepts](/ai-loadout/handbook/concepts/)** — Dispatch tables, priorities, resolver, runtime, and budgets
 - **[API Reference](/ai-loadout/handbook/reference/)** — Every export documented
 - **[Security](/ai-loadout/handbook/security/)** — Attack surface and threat model
+- **[Beginners Guide](/ai-loadout/handbook/beginners/)** — New to AI Loadout? Start here
 
 ## What is AI Loadout?
 

@@ -208,6 +208,7 @@ Estimate token count from text. Uses chars/4 heuristic.
 ```
 ai-loadout resolve                    Resolve layered loadouts
 ai-loadout explain <entry-id>         Explain why an entry resolved to its current state
+ai-loadout validate <index>           Validate index structure
 ai-loadout usage <jsonl>              Usage summary from event log
 ai-loadout dead <index> <jsonl>       Find entries never loaded
 ai-loadout overlaps <index>           Find keyword routing ambiguities
@@ -235,6 +236,7 @@ import type {
   LoadPlan,
   ResolvedLoadout,
   EntryExplanation,
+  IssueSeverity,    // "error" | "warning"
 } from "@mcptoolshop/ai-loadout";
 ```
 
@@ -245,7 +247,7 @@ import type {
 
 ## Security
 
-This package is a pure data library. It does not access the filesystem, make network requests, or collect telemetry. All I/O is the consumer's responsibility.
+The core matching, merging, and validation modules are pure functions with no side effects. The usage module (`recordUsage` / `readUsage`) performs local filesystem I/O to an append-only JSONL log. The resolver reads index files from canonical layer paths. No network requests, no telemetry, no native dependencies.
 
 ### Threat Model
 

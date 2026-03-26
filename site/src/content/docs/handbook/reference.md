@@ -203,6 +203,7 @@ Estimate token count from text using chars/4 heuristic.
 ```
 ai-loadout resolve                    Resolve layered loadouts
 ai-loadout explain <entry-id>         Explain an entry's resolution path
+ai-loadout validate <index>           Validate index structure
 ai-loadout usage <jsonl>              Usage summary from event log
 ai-loadout dead <index> <jsonl>       Find entries never loaded
 ai-loadout overlaps <index>           Find keyword routing ambiguities
