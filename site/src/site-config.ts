@@ -91,7 +91,7 @@ export const config: SiteConfig = {
       kind: 'api',
       id: 'api',
       title: 'API Reference',
-      subtitle: 'Six exports. That\'s it.',
+      subtitle: 'Clean exports for matching, resolving, and observability.',
       apis: [
         {
           name: 'matchLoadout(task, index)',

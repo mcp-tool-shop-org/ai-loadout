@@ -45,7 +45,7 @@ The default is `{ task: true, plan: true, edit: false }`. These are advisory —
 
 ## Keyword Matching
 
-The matcher tokenizes the task description into lowercase words (stripping non-alphanumeric characters and filtering single-character tokens), then compares against each entry's `keywords` array:
+The matcher tokenizes the task description into lowercase words (replacing non-alphanumeric characters with spaces, splitting on whitespace, and filtering out single-character tokens), then compares against each entry's `keywords` array:
 
 1. For each keyword, split it on spaces/hyphens and check if all words are present in the task tokens
 2. Calculate **overlap proportion** = matched keywords / total entry keywords

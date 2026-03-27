@@ -263,7 +263,7 @@ The core matching, merging, and validation modules are pure functions with no si
 | Threat | Mitigation |
 |--------|------------|
 | Malformed frontmatter input | `parseFrontmatter()` returns `null` on invalid input — no exceptions, no eval |
-| Prototype pollution | Hand-rolled parser uses plain object literals, no `JSON.parse` of untrusted nested structures |
+| Prototype pollution | Hand-rolled parser uses plain object literals, no recursive merge of untrusted input |
 | Index with bad data | `validateIndex()` catches structural issues before they propagate |
 | Regex DoS | No user-supplied regex — patterns are matched as plain string lookups |
 

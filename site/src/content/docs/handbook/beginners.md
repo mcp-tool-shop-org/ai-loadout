@@ -116,6 +116,8 @@ console.log("On-demand:", plan.onDemand.map(m => m.entry.id));
 console.log("Token cost:", plan.preloadTokens, "preload +", plan.onDemandTokens, "on-demand");
 ```
 
+`planLoad` calls the resolver behind the scenes, which looks for index files at four canonical paths: `~/.ai-loadout/index.json` (global), `$AI_LOADOUT_ORG` (org), `<cwd>/.claude/loadout/index.json` (project), and `$AI_LOADOUT_SESSION` (session). Missing layers are normal -- most setups only use the project layer. If no index is found anywhere, the plan returns empty arrays.
+
 ### 5. Validate your index
 
 ```bash
@@ -123,6 +125,38 @@ ai-loadout validate .claude/loadout/index.json
 ```
 
 This checks for structural issues: missing fields, duplicate IDs, non-kebab-case IDs, domain entries without keywords, summaries over 120 characters, and negative budget values.
+
+Add `--json` for machine-readable output:
+
+```bash
+ai-loadout validate .claude/loadout/index.json --json
+```
+
+You can also run `ai-loadout --help` to see all available commands, or `ai-loadout --version` to confirm which version is installed.
+
+### 6. Write a payload file with frontmatter
+
+Create the file referenced by your entry's `path` field. Include frontmatter so that the routing metadata lives with the content:
+
+```markdown
+---
+id: testing-rules
+keywords: [test, jest, vitest, coverage]
+patterns: [test_suite]
+priority: domain
+triggers:
+  task: true
+  plan: true
+  edit: false
+---
+
+# Testing Conventions
+
+All code must have tests. Minimum coverage: 80%.
+Use vitest for unit tests...
+```
+
+The frontmatter is the source of truth for routing. The index is derived from it. If they ever drift, `ai-loadout validate` catches the mismatch.
 
 ## Common Mistakes
 

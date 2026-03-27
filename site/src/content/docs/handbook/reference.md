@@ -23,7 +23,7 @@ const plan = planLoad("fix the CI workflow");
 interface LoadPlan {
   preload: MatchResult[];              // eager entries — load immediately
   onDemand: MatchResult[];             // lazy entries — load when needed
-  manual: LoadoutEntry[];              // never auto-loaded
+  manual: LoadoutEntry[];              // manual-priority entries + unmatched domain entries
   provenance: Record<string, string>;  // entryId → source layer
   budget: Budget;
   conflicts: MergeConflict[];
@@ -33,7 +33,7 @@ interface LoadPlan {
 }
 ```
 
-Resolves all layers (global → org → project → session), matches the task, and separates entries by load mode.
+Resolves all layers (global → org → project → session), matches the task, and separates entries by load mode. The `manual` array includes both entries with `manual` priority and any domain entries that did not match the current task (score below the 0.1 threshold).
 
 ---
 
