@@ -74,7 +74,9 @@ const { merged, layers, searched } = resolveLoadout();
 
 ### discoverLayers(opts?)
 
-Discover canonical layer locations and load any that exist. Lower-level than `resolveLoadout`.
+Discover canonical layer locations and load any that exist. Lower-level than `resolveLoadout`. Missing layers are normal -- most setups only have project-level. Malformed files are treated the same as missing.
+
+**Returns:** `{ layers: DiscoveredLayer[], searched: SearchedLayer[] }`
 
 ---
 
@@ -142,19 +144,68 @@ const entry = lookupEntry("github-actions", index);
 
 ### recordUsage(event, path) / readUsage(path) / summarizeUsage(events)
 
-Append-only JSONL usage log. `recordUsage` appends, `readUsage` loads, `summarizeUsage` groups by entry.
+Append-only JSONL usage log. `recordUsage` appends a single event, `readUsage` loads all events (silently skipping malformed lines), `summarizeUsage` groups events by entry ID sorted by load count descending.
+
+**`summarizeUsage` returns:** `UsageSummary[]`
+
+```typescript
+interface UsageSummary {
+  entryId: string;
+  loadCount: number;
+  totalTokens: number;
+  lastLoaded: string;       // ISO 8601
+  triggers: string[];       // unique triggers that caused loads
+  modes: Set<string>;       // unique load modes used
+}
+```
 
 ### findDeadEntries(index, events)
 
-Find entries that have never been loaded. Returns entries sorted by token cost (biggest waste first).
+Find entries that have never been loaded. Core entries are excluded since they always load. Returns entries sorted by token cost descending (biggest waste first).
+
+**Returns:** `DeadEntry[]`
+
+```typescript
+interface DeadEntry {
+  entry: LoadoutEntry;
+  reason: string;
+}
+```
 
 ### findKeywordOverlaps(index)
 
-Find keywords shared between entries — routing ambiguities.
+Find keywords shared between entries — routing ambiguities. Results sorted by overlap count descending.
+
+**Returns:** `KeywordOverlap[]`
+
+```typescript
+interface KeywordOverlap {
+  keyword: string;
+  entries: string[];  // entry IDs sharing this keyword
+}
+```
 
 ### analyzeBudget(index, usage?)
 
 Token budget breakdown by priority tier, with observed-vs-estimated comparison when usage data is available.
+
+**Returns:** `BudgetBreakdown`
+
+```typescript
+interface BudgetBreakdown {
+  totalTokens: number;
+  coreTokens: number;
+  domainTokens: number;
+  manualTokens: number;
+  coreEntries: number;
+  domainEntries: number;
+  manualEntries: number;
+  avgDomainSize: number;
+  largestEntry: { id: string; tokens: number } | null;
+  smallestEntry: { id: string; tokens: number } | null;
+  observedAvg: number | null;
+}
+```
 
 ---
 
@@ -218,22 +269,44 @@ All commands support `--json` for scripting. Resolver commands accept `--project
 
 ```typescript
 import type {
+  // Core data model
   LoadoutEntry,      // Single entry in the dispatch table
   LoadoutIndex,      // The full dispatch table (entries + budget)
   Frontmatter,       // Parsed from payload file headers
-  MatchResult,       // Returned by matchLoadout()
-  ValidationIssue,   // Returned by validateIndex()
   Priority,          // "core" | "domain" | "manual"
   Triggers,          // { task, plan, edit }
   LoadMode,          // "eager" | "lazy" | "manual"
   Budget,            // Token budget model
+
+  // Matching
+  MatchResult,       // Returned by matchLoadout()
+
+  // Validation
+  ValidationIssue,   // Returned by validateIndex()
+  IssueSeverity,     // "error" | "warning"
+
+  // Usage & observability
   UsageEvent,        // Append-only usage log entry
+  UsageSummary,      // Returned by summarizeUsage()
+  DeadEntry,         // Returned by findDeadEntries()
+  KeywordOverlap,    // Returned by findKeywordOverlaps()
+  BudgetBreakdown,   // Returned by analyzeBudget()
+
+  // Merge
   MergeConflict,     // Entry defined in multiple layers
   MergedIndex,       // LoadoutIndex + provenance + conflicts
-  LoadPlan,          // Returned by planLoad()
+
+  // Resolver
+  DiscoveredLayer,   // A layer found and loaded by the resolver
+  SearchedLayer,     // A layer search location and its result
   ResolvedLoadout,   // Returned by resolveLoadout()
   EntryExplanation,  // Returned by explainEntry()
-  IssueSeverity,     // "error" | "warning"
+  EntryDefinition,   // One layer's version of a specific entry
+  ResolveOptions,    // Options for resolveLoadout / discoverLayers
+
+  // Agent runtime
+  LoadPlan,          // Returned by planLoad()
+  RuntimeOptions,    // Options for planLoad / recordLoad / manualLookup
 } from "@mcptoolshop/ai-loadout";
 ```
 
@@ -243,3 +316,5 @@ import type {
 import { DEFAULT_TRIGGERS } from "@mcptoolshop/ai-loadout";
 // { task: true, plan: true, edit: false }
 ```
+
+`DEFAULT_TRIGGERS` provides the default trigger values applied when frontmatter omits the `triggers` field.

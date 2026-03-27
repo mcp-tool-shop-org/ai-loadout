@@ -130,7 +130,7 @@ This checks for structural issues: missing fields, duplicate IDs, non-kebab-case
 
 **Forgetting keywords on domain entries.** Domain entries with no keywords can never be matched by the matcher. The `validate` command catches this as an error (`EMPTY_KEYWORDS`).
 
-**Using regex in patterns.** The `patterns` field contains named intents like `"ci_pipeline"` -- they are matched as plain string lookups against the underscore-split words, not as regular expressions. A pattern of `"ci_pipeline"` matches a task containing the word "ci" or "pipeline."
+**Using regex in patterns.** The `patterns` field contains named intents like `"ci_pipeline"` -- they are not regular expressions. The matcher splits each pattern on `_` and checks if **any** of those words appear in the task. A pattern of `"ci_pipeline"` matches a task containing the word "ci" or "pipeline." A matching pattern adds a +0.2 bonus to the entry's score.
 
 **Huge payloads behind a single entry.** If one payload is 5,000 tokens and others are 200, the budget becomes misleading. Break large payloads into focused sub-topics with separate entries.
 

@@ -9,8 +9,11 @@ sidebar:
 
 A `LoadoutIndex` is the central data structure. It contains:
 
+- **version** — the schema version (currently `"1.0.0"`)
+- **generated** — ISO 8601 timestamp of when the index was generated
 - **entries** — an array of `LoadoutEntry` objects, each describing one knowledge payload
 - **budget** — token estimates for context planning
+- **lazyLoad** (optional) — when `true`, signals that payloads should not be pre-loaded by consumers
 
 The index is designed to be always-loaded alongside a lean instruction file. Payloads are loaded on demand when the matcher finds a hit.
 
@@ -42,12 +45,15 @@ The default is `{ task: true, plan: true, edit: false }`. These are advisory —
 
 ## Keyword Matching
 
-The matcher tokenizes the task description into lowercase words, then compares against each entry's `keywords` array:
+The matcher tokenizes the task description into lowercase words (stripping non-alphanumeric characters and filtering single-character tokens), then compares against each entry's `keywords` array:
 
-1. Calculate **overlap proportion** = matched keywords / total entry keywords
-2. Add **pattern bonus** (+0.2) if any entry pattern appears in the task
-3. Cap the score at 1.0
-4. Sort results by score descending, then by token cost ascending (lighter payloads first on ties)
+1. For each keyword, split it on spaces/hyphens and check if all words are present in the task tokens
+2. Calculate **overlap proportion** = matched keywords / total entry keywords
+3. For patterns, split each on `_` and check if **any** word appears in the task tokens
+4. Add **pattern bonus** (+0.2) if any entry pattern matched
+5. Cap the score at 1.0
+6. Exclude domain entries below the minimum score threshold (0.1)
+7. Sort results by score descending, then by token cost ascending (lighter payloads first on ties)
 
 ## The Budget Model
 

@@ -226,17 +226,26 @@ import type {
   Frontmatter,
   MatchResult,
   ValidationIssue,
-  Priority,       // "core" | "domain" | "manual"
-  Triggers,       // { task, plan, edit }
-  LoadMode,       // "eager" | "lazy" | "manual"
+  Priority,          // "core" | "domain" | "manual"
+  Triggers,          // { task, plan, edit }
+  LoadMode,          // "eager" | "lazy" | "manual"
   Budget,
   UsageEvent,
   MergeConflict,
   MergedIndex,
-  LoadPlan,
-  ResolvedLoadout,
-  EntryExplanation,
-  IssueSeverity,    // "error" | "warning"
+  LoadPlan,          // returned by planLoad()
+  ResolvedLoadout,   // returned by resolveLoadout()
+  EntryExplanation,  // returned by explainEntry()
+  IssueSeverity,     // "error" | "warning"
+  RuntimeOptions,    // options for planLoad / recordLoad / manualLookup
+  ResolveOptions,    // options for resolveLoadout / discoverLayers
+  UsageSummary,      // returned by summarizeUsage()
+  DeadEntry,         // returned by findDeadEntries()
+  KeywordOverlap,    // returned by findKeywordOverlaps()
+  BudgetBreakdown,   // returned by analyzeBudget()
+  DiscoveredLayer,   // a layer found and loaded by the resolver
+  SearchedLayer,     // a layer search location and its result
+  EntryDefinition,   // one layer's version of a specific entry
 } from "@mcptoolshop/ai-loadout";
 ```
 
