@@ -14,16 +14,17 @@
   <a href="https://mcp-tool-shop-org.github.io/ai-loadout/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
-Roteador de conhecimento contextual para agentes de IA.
+Roteador de conhecimento contextualmente adaptável para agentes de IA.
 
-`ai-loadout` é o formato da tabela de despacho e o mecanismo de correspondência que permite que os agentes de IA carreguem o conhecimento correto para a tarefa em questão. Em vez de carregar tudo no contexto, você mantém um índice pequeno e carrega os dados sob demanda.
+`ai-loadout` é o núcleo da pilha Knowledge OS — formato de tabela de despacho, mecanismo de correspondência, resolvedor hierárquico e contrato de tempo de execução do agente. Em vez de colocar tudo no contexto, você mantém um índice pequeno e carrega os dados sob demanda.
 
-Pense nisso como uma configuração de jogo — você equipa o agente com exatamente o conhecimento que ele precisa antes de cada missão.
+Pense nisso como um "loadout" de jogo — você equipa o agente com exatamente o conhecimento que ele precisa antes de cada missão.
 
 ## Instalação
 
 ```bash
-npm install @mcptoolshop/ai-loadout
+npm install -g @mcptoolshop/ai-loadout   # CLI
+npm install @mcptoolshop/ai-loadout       # library
 ```
 
 ## Conceitos Fundamentais
@@ -62,13 +63,13 @@ Um `LoadoutIndex` é um índice estruturado de dados de conhecimento:
 
 | Nível | Comportamento | Exemplo |
 |------|----------|---------|
-| `core` | Sempre carregado | "nunca pule testes para deixar o CI verde" |
-| `domain` | Carregado quando as palavras-chave da tarefa correspondem | Regras do CI ao editar fluxos de trabalho |
+| `core` | Carregado sempre | "nunca pule testes para manter o CI verde" |
+| `domain` | Carregado quando as palavras-chave da tarefa correspondem | Regras de CI ao editar fluxos de trabalho |
 | `manual` | Nunca carregado automaticamente, apenas pesquisa explícita | Detalhes obscuros da plataforma |
 
 ### Metadados do Dado
 
-Cada arquivo de dado carrega seus próprios metadados de roteamento:
+Cada arquivo de dado contém seus próprios metadados de roteamento:
 
 ```markdown
 ---
@@ -88,76 +89,133 @@ CI minutes are finite...
 
 O metadado é a fonte da verdade. O índice é derivado dele.
 
-## API
+## Tempo de Execução do Agente (API Primária)
+
+O tempo de execução é a maneira canônica de os agentes consumirem um "loadout". Ele envolve toda a sequência: resolver camadas → corresponder à tarefa → decidir o que carregar → registrar o uso.
+
+### `planLoad(tarefa, opções?)`
+
+Planeja o que carregar para uma determinada tarefa. Esta é a função principal voltada para o agente.
+
+```typescript
+import { planLoad } from "@mcptoolshop/ai-loadout";
+
+const plan = planLoad("fix the CI workflow");
+// plan.preload   — core entries, load immediately
+// plan.onDemand  — domain matches, load when needed
+// plan.manual    — available via explicit lookup only
+```
+
+Retorna um `LoadPlan` com:
+- `preload` / `onDemand` / `manual` — entradas separadas pelo modo de carregamento
+- `provenance` — de qual camada cada entrada veio
+- `budget` — orçamento de tokens para o índice resolvido
+- `preloadTokens` / `onDemandTokens` — custos totais de tokens
+- `layerNames` / `conflicts` — metadados da camada
+
+### `recordLoad(idEntrada, gatilho, modo, tokensEstimados, opções?)`
+
+Registra que um agente carregou uma entrada. Permite a observabilidade (entradas não utilizadas, desvio de orçamento, rastreamento de frequência). Opcional — grava apenas quando `usagePath` é definido nas opções.
+
+### `manualLookup(id, opções?)`
+
+Carrega explicitamente uma entrada manual por ID do índice resolvido.
+
+## Resolvedor
+
+Descobre e mescla índices de "loadout" de uma pilha de camadas canônica:
+
+1. **global** — `~/.ai-loadout/index.json`
+2. **org** — caminho explícito ou `$AI_LOADOUT_ORG`
+3. **projeto** — `<cwd>/.claude/loadout/index.json`
+4. **sessão** — caminho explícito ou `$AI_LOADOUT_SESSION`
+
+As camadas posteriores têm precedência. Camadas ausentes são normais.
+
+```typescript
+import { resolveLoadout, explainEntry } from "@mcptoolshop/ai-loadout";
+
+const { merged, layers, searched } = resolveLoadout();
+// merged.entries — deduplicated entries from all layers
+// merged.provenance — entryId → source layer name
+
+const why = explainEntry("github-actions", layers);
+// why.finalLayer, why.overrideChain, why.definitions
+```
+
+## Correspondência
 
 ### `matchLoadout(tarefa, índice)`
 
-Compara uma descrição da tarefa com um índice de configuração. Retorna as entradas que devem ser carregadas, classificadas pela força da correspondência.
+Corresponde uma descrição de tarefa a um índice de "loadout". Retorna entradas classificadas pela força da correspondência.
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
 
 const results = matchLoadout("fix the CI workflow", index);
-// [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
+// [{ entry, score: 0.67, matchedKeywords: ["ci", "workflow"], reason, mode }]
 ```
 
 - Entradas principais sempre incluídas (pontuação 1.0)
 - Entradas manuais nunca incluídas automaticamente
-- Entradas de domínio pontuadas pela sobreposição de palavras-chave + bônus de padrão
-- Resultados classificados por pontuação em ordem decrescente
+- Entradas de domínio pontuadas por sobreposição de palavras-chave + bônus de padrão
+- Resultados classificados por pontuação decrescente, depois por custo de token crescente
 
 ### `lookupEntry(id, índice)`
 
 Pesquisa uma entrada específica por ID. Para entradas manuais ou acesso explícito.
 
-```typescript
-import { lookupEntry } from "@mcptoolshop/ai-loadout";
+## Observabilidade
 
-const entry = lookupEntry("github-actions", index);
-```
+### `recordUsage()` / `readUsage()` / `summarizeUsage()`
 
-### `parseFrontmatter(conteúdo)`
+Registro de uso JSONL somente para anexação. Nunca conectado à rede, nunca invasivo.
 
-Analisa o metadado no formato YAML de um arquivo de dado.
+### `findDeadEntries(índice, eventos)`
 
-```typescript
-import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
+Encontra entradas que nunca foram carregadas.
 
-const { frontmatter, body } = parseFrontmatter(fileContent);
-if (frontmatter) {
-  console.log(frontmatter.id, frontmatter.keywords);
-}
-```
+### `findKeywordOverlaps(índice)`
 
-### `serializeFrontmatter(fm)`
+Encontra palavras-chave compartilhadas entre entradas (ambiguidades de roteamento).
 
-Serializa um objeto `Frontmatter` de volta para uma string.
+### `analyzeBudget(índice, uso?)`
+
+Detalhes do orçamento de tokens com comparação entre o observado e o estimado.
+
+## Mesclar
+
+### `mergeIndexes(camadas)`
+
+Mesclagem determinística para configurações hierárquicas. Retorna um `MergedIndex` com rastreamento de origem e relatórios de conflitos.
+
+## Utilitários
+
+### `parseFrontmatter(conteúdo)` / `serializeFrontmatter(fm)`
+
+Analisa e serializa metadados no formato YAML de arquivos de carga.
 
 ### `validateIndex(índice)`
 
-Valida a integridade estrutural de um `LoadoutIndex`. Retorna um array de problemas.
-
-```typescript
-import { validateIndex } from "@mcptoolshop/ai-loadout";
-
-const issues = validateIndex(index);
-const errors = issues.filter(i => i.severity === "error");
-if (errors.length > 0) {
-  console.error("Index has errors:", errors);
-}
-```
-
-Verificações: campos obrigatórios, IDs únicos, formato kebab-case, limites do resumo, presença de palavras-chave para entradas de domínio, prioridades válidas, orçamentos não negativos.
+Valida a integridade estrutural de um `LoadoutIndex`. Verifica: campos obrigatórios, IDs únicos, formato kebab-case, limites do resumo, presença de palavras-chave para entradas de domínio, prioridades válidas, orçamentos não negativos.
 
 ### `estimateTokens(texto)`
 
-Estima a contagem de tokens a partir de um texto. Usa a heurística de chars/4.
+Estima a contagem de tokens a partir do texto. Utiliza a heurística de chars/4.
 
-```typescript
-import { estimateTokens } from "@mcptoolshop/ai-loadout";
+## Interface de Linha de Comando (CLI)
 
-const tokens = estimateTokens(fileContent); // ~250
 ```
+ai-loadout resolve                    Resolve layered loadouts
+ai-loadout explain <entry-id>         Explain why an entry resolved to its current state
+ai-loadout validate <index>           Validate index structure
+ai-loadout usage <jsonl>              Usage summary from event log
+ai-loadout dead <index> <jsonl>       Find entries never loaded
+ai-loadout overlaps <index>           Find keyword routing ambiguities
+ai-loadout budget <index> [jsonl]     Token budget breakdown
+```
+
+Todos os comandos suportam `--json` para scripts. Os comandos de resolução aceitam `--project`, `--global`, `--org`, `--session`.
 
 ## Tipos
 
@@ -168,31 +226,49 @@ import type {
   Frontmatter,
   MatchResult,
   ValidationIssue,
-  Priority,       // "core" | "domain" | "manual"
-  Triggers,       // { task, plan, edit }
+  Priority,          // "core" | "domain" | "manual"
+  Triggers,          // { task, plan, edit }
+  LoadMode,          // "eager" | "lazy" | "manual"
   Budget,
+  UsageEvent,
+  MergeConflict,
+  MergedIndex,
+  LoadPlan,          // returned by planLoad()
+  ResolvedLoadout,   // returned by resolveLoadout()
+  EntryExplanation,  // returned by explainEntry()
+  IssueSeverity,     // "error" | "warning"
+  RuntimeOptions,    // options for planLoad / recordLoad / manualLookup
+  ResolveOptions,    // options for resolveLoadout / discoverLayers
+  UsageSummary,      // returned by summarizeUsage()
+  DeadEntry,         // returned by findDeadEntries()
+  KeywordOverlap,    // returned by findKeywordOverlaps()
+  BudgetBreakdown,   // returned by analyzeBudget()
+  DiscoveredLayer,   // a layer found and loaded by the resolver
+  SearchedLayer,     // a layer search location and its result
+  EntryDefinition,   // one layer's version of a specific entry
 } from "@mcptoolshop/ai-loadout";
 ```
 
 ## Consumidores
 
-- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Otimizador CLAUDE.md para Claude Code. Usa ai-loadout para a tabela de despacho e correspondência.
+- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Otimizador para CLAUDE.md para Claude Code. Utiliza ai-loadout para a tabela de despacho e correspondência.
+- **[@mcptoolshop/claude-memories](https://github.com/mcp-tool-shop-org/claude-memories)** — Otimizador para MEMORY.md para Claude Code. Gera tabelas de despacho a partir de arquivos de tópicos de memória.
 
 ## Segurança
 
-Este pacote é uma biblioteca de dados pura. Ele não acessa o sistema de arquivos, faz solicitações de rede ou coleta telemetria. Toda a entrada/saída é de responsabilidade do consumidor.
+Os módulos principais de correspondência, mesclagem e validação são funções puras sem efeitos colaterais. O módulo de uso (`recordUsage` / `readUsage`) realiza operações de entrada/saída no sistema de arquivos local para um arquivo JSONL somente para anexar. O resolvedor lê arquivos de índice de caminhos de camada canônicos. Não há solicitações de rede, telemetria ou dependências nativas.
 
 ### Modelo de Ameaças
 
 | Ameaça | Mitigação |
 |--------|------------|
-| Metadado inválido | `parseFrontmatter()` retorna `null` em caso de entrada inválida — sem exceções, sem `eval` |
-| Poluição de protótipos | O analisador personalizado usa literais de objeto simples, sem `JSON.parse` de estruturas aninhadas não confiáveis. |
+| Entrada de metadados malformada | `parseFrontmatter()` retorna `null` em caso de entrada inválida — sem exceções, sem `eval`. |
+| Poluição de protótipos | O analisador personalizado usa literais de objeto simples, sem mesclagem recursiva de entradas não confiáveis. |
 | Índice com dados incorretos | `validateIndex()` detecta problemas estruturais antes que eles se propaguem. |
-| DoS Regex | Nenhum regex fornecido pelo usuário — os padrões são correspondidos como pesquisas de string simples. |
+| Ataque DoS com expressões regulares | Nenhuma expressão regular fornecida pelo usuário — os padrões são correspondidos como pesquisas de string simples. |
 
 Consulte [SECURITY.md](SECURITY.md) para a política de segurança completa.
 
 ---
 
-Criado por [MCP Tool Shop](https://mcp-tool-shop.github.io/)
+Desenvolvido por [MCP Tool Shop](https://mcp-tool-shop.github.io/)

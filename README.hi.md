@@ -14,23 +14,24 @@
   <a href="https://mcp-tool-shop-org.github.io/ai-loadout/"><img src="https://img.shields.io/badge/Landing_Page-live-blue" alt="Landing Page"></a>
 </p>
 
-संदर्भ-जागरूक ज्ञान राउटर जो एआई एजेंटों के लिए है।
+एआई एजेंटों के लिए संदर्भ-जागरूक ज्ञान मार्गदर्शक प्रणाली।
 
-`ai-loadout` एक डिस्पैच टेबल फॉर्मेट और मिलान इंजन है जो एआई एजेंटों को उस कार्य के लिए सही ज्ञान लोड करने की अनुमति देता है। संदर्भ में सब कुछ डालने के बजाय, आप एक छोटा इंडेक्स रखते हैं और आवश्यकतानुसार डेटा लोड करते हैं।
+`ai-loadout` ज्ञान प्रणाली (नॉलेज ओएस) के मूल ढांचे का हिस्सा है - इसमें डिस्पैच टेबल का प्रारूप, मिलान इंजन, पदानुक्रमित समाधानकर्ता (हायरार्किकल रिजॉल्वर) और एजेंट रनटाइम अनुबंध शामिल हैं। इसके बजाय कि आप सब कुछ संदर्भ में डाल दें, आप एक छोटा सा इंडेक्स रखते हैं और आवश्यकतानुसार डेटा लोड करते हैं।
 
-इसे एक गेम लोडआउट की तरह सोचें - आप एजेंट को प्रत्येक मिशन से पहले आवश्यक ज्ञान से लैस करते हैं।
+इसे एक तरह के गेम में इस्तेमाल होने वाले उपकरणों की तरह समझें— आप एजेंट को हर मिशन से पहले वही जानकारी देते हैं जिसकी उसे आवश्यकता होती है।
 
-## इंस्टॉल करें
+## स्थापित करें।
 
 ```bash
-npm install @mcptoolshop/ai-loadout
+npm install -g @mcptoolshop/ai-loadout   # CLI
+npm install @mcptoolshop/ai-loadout       # library
 ```
 
-## मुख्य अवधारणाएं
+## मुख्य अवधारणाएं।
 
-### डिस्पैच टेबल
+### डिस्पैच टेबल।
 
-`LoadoutIndex` ज्ञान डेटा के एक संरचित इंडेक्स है:
+एक `LoadoutIndex` ज्ञान के संग्रह का एक संरचित सूचकांक है:
 
 ```json
 {
@@ -58,17 +59,17 @@ npm install @mcptoolshop/ai-loadout
 }
 ```
 
-### प्राथमिकता स्तर
+### प्राथमिकता स्तर।
 
-| स्तर | व्यवहार | उदाहरण |
+| स्तर। | व्यवहार। | उदाहरण। |
 |------|----------|---------|
-| `core` | हमेशा लोड किया जाता है | "CI को हरा करने के लिए कभी भी परीक्षणों को छोड़ें नहीं" |
-| `domain` | जब कार्य कीवर्ड मेल खाते हैं तो लोड किया जाता है | वर्कफ़्लो संपादित करते समय CI नियम |
-| `manual` | कभी भी स्वचालित रूप से लोड नहीं किया जाता है, केवल स्पष्ट खोज | अस्पष्ट प्लेटफ़ॉर्म संबंधी समस्याएं |
+| `core` | हमेशा तैयार। | "जांचों को कभी भी न छोड़ें, ताकि निरंतर एकीकरण (सीआई) प्रक्रिया सुचारू रूप से चलती रहे।" |
+| `domain` | यह तभी लोड होगा जब कार्य से संबंधित कीवर्ड मेल खाएंगे। | सीआई (CI) नियमों का पालन करते हुए वर्कफ़्लो को संपादित करना। |
+| `manual` | यह स्वचालित रूप से लोड नहीं होता है, केवल स्पष्ट रूप से खोजा जा सकता है। | अपरिचित प्लेटफॉर्म की जटिलताएं। |
 
-### डेटा का प्रारंभिक भाग
+### पेलोड का प्रारंभिक भाग।
 
-प्रत्येक डेटा फ़ाइल में अपना रूटिंग मेटाडेटा होता है:
+प्रत्येक डेटा फ़ाइल में अपने स्वयं के रूटिंग संबंधी जानकारी (मेटाडेटा) शामिल होता है:
 
 ```markdown
 ---
@@ -86,78 +87,140 @@ triggers:
 CI minutes are finite...
 ```
 
-प्रारंभिक भाग सत्य का स्रोत है। इंडेक्स इससे प्राप्त होता है।
+"फ्रंट मैटर" (प्रारंभिक सामग्री) ही सत्य का स्रोत है। अनुक्रमणिका (इंडेक्स) इसी से बनाई जाती है।
 
-## एपीआई
+## एजेंट रनटाइम (मुख्य एपीआई)
 
-### `matchLoadout(task, index)`
+"रनटाइम" वह मानक तरीका है जिससे एजेंट किसी विशेष कार्य के लिए आवश्यक संसाधनों (लोडआउट) का उपयोग करते हैं। यह पूरी प्रक्रिया को शामिल करता है: परतों को निर्धारित करना → कार्य का मिलान करना → यह तय करना कि क्या लोड करना है → उपयोग का रिकॉर्ड रखना।
 
-एक कार्य विवरण को लोडआउट इंडेक्स के खिलाफ मिलाएं। उन प्रविष्टियों को लौटाता है जिन्हें लोड किया जाना चाहिए, जो मिलान की शक्ति के आधार पर क्रमबद्ध हैं।
+### `planLoad(कार्य, विकल्प?)`
+
+किसी विशेष कार्य के लिए क्या सामग्री लोड करनी है, इसकी योजना बनाएं। यह मुख्य रूप से उपयोगकर्ता के लिए उपयोगी एक सुविधा है।
+
+```typescript
+import { planLoad } from "@mcptoolshop/ai-loadout";
+
+const plan = planLoad("fix the CI workflow");
+// plan.preload   — core entries, load immediately
+// plan.onDemand  — domain matches, load when needed
+// plan.manual    — available via explicit lookup only
+```
+
+यह एक `LoadPlan` लौटाता है जिसमें निम्नलिखित जानकारी शामिल होती है:
+
+- `preload` / `onDemand` / `manual` — लोड मोड के आधार पर अलग-अलग प्रविष्टियाँ।
+- `provenance` — प्रत्येक प्रविष्टि किस लेयर से आई है।
+- `budget` — हल किए गए इंडेक्स के लिए टोकन बजट।
+- `preloadTokens` / `onDemandTokens` — टोकन की कुल लागत।
+- `layerNames` / `conflicts` — लेयर से संबंधित मेटाडेटा।
+
+### `recordLoad(entryId, trigger, mode, tokensEst, opts?)` का हिंदी में अनुवाद:
+
+`recordLoad(एंट्री आईडी, ट्रिगर, मोड, टोकन अनुमानित, विकल्प?)`
+
+यह रिकॉर्ड करता है कि किसी एजेंट ने एक प्रविष्टि (एंट्री) जोड़ी है। यह निगरानी (मॉनिटरिंग) की सुविधा प्रदान करता है (जैसे, अमान्य प्रविष्टियाँ, बजट में विचलन, आवृत्ति का पता लगाना)। वैकल्पिक: यह केवल तभी डेटा लिखता है जब `usagePath` विकल्प में निर्दिष्ट किया गया हो।
+
+### `manualLookup(आईडी, विकल्प?)`
+
+निश्चित पहचान संख्या (आईडी) के आधार पर, हल किए गए इंडेक्स से मैन्युअल रूप से दर्ज की गई जानकारी को सीधे लोड करें।
+
+## समाधान करना।
+
+यह सुविधा एक मानक लेयर संरचना से लोडआउट इंडेक्स को खोजती है और उन्हें एक साथ मिलाती है।
+
+1. **वैश्विक (ग्लोबल):** `~/.ai-loadout/index.json`
+2. **संगठन (ऑर्ग):** स्पष्ट पथ या `$AI_LOADOUT_ORG`
+3. **परियोजना (प्रोजेक्ट):** `<cwd>/.claude/loadout/index.json`
+4. **सत्र (सेशन):** स्पष्ट पथ या `$AI_LOADOUT_SESSION`
+
+बाद की परतें (लेयर्स) बेहतर होती हैं। छूटी हुई परतें सामान्य हैं।
+
+```typescript
+import { resolveLoadout, explainEntry } from "@mcptoolshop/ai-loadout";
+
+const { merged, layers, searched } = resolveLoadout();
+// merged.entries — deduplicated entries from all layers
+// merged.provenance — entryId → source layer name
+
+const why = explainEntry("github-actions", layers);
+// why.finalLayer, why.overrideChain, why.definitions
+```
+
+## मेल खाना।
+
+### `matchLoadout(कार्य, सूचकांक)`
+
+किसी कार्य के विवरण को उपकरण सूची (लोडआउट इंडेक्स) से मिलाएं। यह उन प्रविष्टियों को सूचीबद्ध करता है जिन्हें उनकी अनुकूलता के आधार पर क्रमबद्ध किया गया है।
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
 
 const results = matchLoadout("fix the CI workflow", index);
-// [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
+// [{ entry, score: 0.67, matchedKeywords: ["ci", "workflow"], reason, mode }]
 ```
 
-- मुख्य प्रविष्टियाँ हमेशा शामिल होती हैं (स्कोर 1.0)
-- मैन्युअल प्रविष्टियाँ कभी भी स्वचालित रूप से शामिल नहीं होती हैं
-- डोमेन प्रविष्टियों को कीवर्ड ओवरलैप + पैटर्न बोनस से स्कोर किया जाता है
-- परिणाम स्कोर के अवरोही क्रम में क्रमबद्ध होते हैं
+- मुख्य प्रविष्टियाँ हमेशा शामिल की जाती हैं (स्कोर 1.0)।
+- मैन्युअल रूप से दर्ज की गई प्रविष्टियाँ कभी भी स्वचालित रूप से शामिल नहीं की जाती हैं।
+- डोमेन प्रविष्टियों का मूल्यांकन कीवर्ड के मिलान और पैटर्न बोनस के आधार पर किया जाता है।
+- परिणाम स्कोर के आधार पर अवरोही क्रम में, और फिर टोकन लागत के आधार पर आरोही क्रम में छांटे जाते हैं।
 
-### `lookupEntry(id, index)`
+### `lookupEntry(आईडी, इंडेक्स)`
 
-आईडी द्वारा एक विशिष्ट प्रविष्टि खोजें। मैन्युअल प्रविष्टियों या स्पष्ट पहुंच के लिए।
+किसी विशिष्ट प्रविष्टि को उसकी आईडी के माध्यम से खोजें। यह सुविधा उन प्रविष्टियों के लिए है जिन्हें मैन्युअल रूप से जोड़ा गया है या जिनके लिए विशेष पहुंच की आवश्यकता है।
 
-```typescript
-import { lookupEntry } from "@mcptoolshop/ai-loadout";
+## अवलोकनीयता।
 
-const entry = lookupEntry("github-actions", index);
-```
+### `recordUsage()` / `readUsage()` / `summarizeUsage()` का हिंदी में अनुवाद:
 
-### `parseFrontmatter(content)`
+`उपयोग का रिकॉर्ड करें()` / `उपयोग पढ़ें()` / `उपयोग का सारांश प्रस्तुत करें()`
 
-एक डेटा फ़ाइल से YAML-जैसे प्रारंभिक भाग को पार्स करें।
+केवल जोड़ने की अनुमति वाले JSONL प्रारूप में उपयोग का लॉग। यह कभी भी नेटवर्क से जुड़ा नहीं होता और न ही इसमें कोई संदिग्ध गतिविधि होती है।
 
-```typescript
-import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
+### `findDeadEntries(इंडेक्स, इवेंट्स)`
 
-const { frontmatter, body } = parseFrontmatter(fileContent);
-if (frontmatter) {
-  console.log(frontmatter.id, frontmatter.keywords);
-}
-```
+उन प्रविष्टियों को खोजें जिन्हें कभी भी लोड नहीं किया गया है।
 
-### `serializeFrontmatter(fm)`
+### `findKeywordOverlaps(इंडेक्स)`
 
-एक `Frontmatter` ऑब्जेक्ट को वापस एक स्ट्रिंग में क्रमबद्ध करें।
+उन शब्दों (कीवर्ड) को खोजें जो विभिन्न प्रविष्टियों में समान रूप से उपयोग किए गए हैं (राउटिंग संबंधी अस्पष्टताएं)।
+
+### `analyzeBudget(इंडेक्स, उपयोग?)`
+
+टोकन बजट का विस्तृत विवरण, जिसमें वास्तविक उपयोग की तुलना अनुमानित उपयोग से की गई है।
+
+## विलय करें।
+
+### `mergeIndexes(लेयर्स)` (या "लेयर्स" नामक डेटा संरचनाओं को मिलाकर इंडेक्स बनाना)
+
+नियतात्मक विलय, जो पदानुक्रमित लोडआउट के लिए है। यह `MergedIndex` लौटाता है, जिसमें उत्पत्ति का पता लगाने और टकराव की रिपोर्टिंग की सुविधा होती है।
+
+## उपकरण
+
+### `parseFrontmatter(content)` / `serializeFrontmatter(fm)`
+
+पेयलोड फ़ाइलों से YAML-जैसे फ्रंटमैटर को पार्स और सीरियल करें।
 
 ### `validateIndex(index)`
 
-एक `LoadoutIndex` की संरचनात्मक अखंडता को मान्य करें। मुद्दों का एक सरणी लौटाता है।
-
-```typescript
-import { validateIndex } from "@mcptoolshop/ai-loadout";
-
-const issues = validateIndex(index);
-const errors = issues.filter(i => i.severity === "error");
-if (errors.length > 0) {
-  console.error("Index has errors:", errors);
-}
-```
-
-जांच: आवश्यक फ़ील्ड, अद्वितीय आईडी, केबाब-केस प्रारूप, सारांश सीमाएं, डोमेन प्रविष्टियों के लिए कीवर्ड की उपस्थिति, मान्य प्राथमिकताएं, गैर-नकारात्मक बजट।
+`LoadoutIndex` की संरचनात्मक अखंडता को मान्य करें। जांच: आवश्यक फ़ील्ड, अद्वितीय आईडी, केबाब-केस प्रारूप, सारांश सीमाएं, डोमेन प्रविष्टियों के लिए कीवर्ड की उपस्थिति, मान्य प्राथमिकताएं, गैर-नकारात्मक बजट।
 
 ### `estimateTokens(text)`
 
-पाठ से टोकन की संख्या का अनुमान लगाएं। chars/4 अनुमान का उपयोग करता है।
+टेक्स्ट से टोकन की संख्या का अनुमान लगाएं। यह chars/4 अनुमान का उपयोग करता है।
 
-```typescript
-import { estimateTokens } from "@mcptoolshop/ai-loadout";
+## कमांड-लाइन इंटरफेस (CLI)
 
-const tokens = estimateTokens(fileContent); // ~250
 ```
+ai-loadout resolve                    Resolve layered loadouts
+ai-loadout explain <entry-id>         Explain why an entry resolved to its current state
+ai-loadout validate <index>           Validate index structure
+ai-loadout usage <jsonl>              Usage summary from event log
+ai-loadout dead <index> <jsonl>       Find entries never loaded
+ai-loadout overlaps <index>           Find keyword routing ambiguities
+ai-loadout budget <index> [jsonl]     Token budget breakdown
+```
+
+सभी कमांड स्क्रिप्टिंग के लिए `--json` का समर्थन करते हैं। रिज़ॉल्वर कमांड `--project`, `--global`, `--org`, `--session` स्वीकार करते हैं।
 
 ## प्रकार
 
@@ -168,31 +231,49 @@ import type {
   Frontmatter,
   MatchResult,
   ValidationIssue,
-  Priority,       // "core" | "domain" | "manual"
-  Triggers,       // { task, plan, edit }
+  Priority,          // "core" | "domain" | "manual"
+  Triggers,          // { task, plan, edit }
+  LoadMode,          // "eager" | "lazy" | "manual"
   Budget,
+  UsageEvent,
+  MergeConflict,
+  MergedIndex,
+  LoadPlan,          // returned by planLoad()
+  ResolvedLoadout,   // returned by resolveLoadout()
+  EntryExplanation,  // returned by explainEntry()
+  IssueSeverity,     // "error" | "warning"
+  RuntimeOptions,    // options for planLoad / recordLoad / manualLookup
+  ResolveOptions,    // options for resolveLoadout / discoverLayers
+  UsageSummary,      // returned by summarizeUsage()
+  DeadEntry,         // returned by findDeadEntries()
+  KeywordOverlap,    // returned by findKeywordOverlaps()
+  BudgetBreakdown,   // returned by analyzeBudget()
+  DiscoveredLayer,   // a layer found and loaded by the resolver
+  SearchedLayer,     // a layer search location and its result
+  EntryDefinition,   // one layer's version of a specific entry
 } from "@mcptoolshop/ai-loadout";
 ```
 
 ## उपभोक्ता
 
-- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — क्लाउड कोड के लिए CLAUDE.md ऑप्टिमाइज़र। डिस्पैच टेबल और मिलान के लिए ai-loadout का उपयोग करता है।
+- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — क्लाउड कोड के लिए CLAUDE.md ऑप्टिमाइज़र। यह डिस्पैच टेबल और मिलान के लिए ai-loadout का उपयोग करता है।
+- **[@mcptoolshop/claude-memories](https://github.com/mcp-tool-shop-org/claude-memories)** — क्लाउड कोड के लिए MEMORY.md ऑप्टिमाइज़र। यह मेमोरी टॉपिक फ़ाइलों से डिस्पैच टेबल उत्पन्न करता है।
 
 ## सुरक्षा
 
-यह पैकेज एक शुद्ध डेटा लाइब्रेरी है। यह फ़ाइल सिस्टम तक नहीं पहुंचता है, नेटवर्क अनुरोध नहीं करता है, या टेलीमेट्री एकत्र नहीं करता है। सभी इनपुट/आउटपुट उपभोक्ता की जिम्मेदारी है।
+मुख्य मिलान, विलय और सत्यापन मॉड्यूल शुद्ध फ़ंक्शन हैं जिनमें कोई दुष्प्रभाव नहीं है। उपयोग मॉड्यूल (`recordUsage` / `readUsage`) केवल JSONL लॉग में स्थानीय फ़ाइल सिस्टम I/O करता है। रिज़ॉल्वर मानक पथों से इंडेक्स फ़ाइलें पढ़ता है। कोई नेटवर्क अनुरोध नहीं, कोई टेलीमेट्री नहीं, कोई देशी निर्भरता नहीं।
 
 ### खतरे का मॉडल
 
 | खतरा | शमन |
 |--------|------------|
-| खराब प्रारूप वाला प्रारंभिक भाग इनपुट | `parseFrontmatter()` अमान्य इनपुट पर `null` लौटाता है - कोई अपवाद नहीं, कोई eval नहीं |
-| प्रोटोकॉल प्रदूषण | हाथ से बनाया गया पार्सर केवल साधारण ऑब्जेक्ट लिटरल का उपयोग करता है, अविश्वसनीय नेस्टेड संरचनाओं का `JSON.parse` नहीं करता है |
-| खराब डेटा वाला इंडेक्स | `validateIndex()` संरचनात्मक मुद्दों को फैलने से पहले पकड़ लेता है |
-| रेगेक्स DoS | कोई उपयोगकर्ता-प्रदत्त रेगेक्स नहीं - पैटर्न को साधारण स्ट्रिंग लुकअप के रूप में मिलान किया जाता है |
+| गलत फ्रंटमैटर इनपुट | `parseFrontmatter()` अमान्य इनपुट पर `null` लौटाता है — कोई अपवाद नहीं, कोई eval नहीं। |
+| प्रोटोटाइप प्रदूषण | हाथ से बनाया गया पार्सर, सादे ऑब्जेक्ट लिटरल का उपयोग करता है, अविश्वसनीय इनपुट का कोई पुनरावर्ती विलय नहीं। |
+| खराब डेटा वाला इंडेक्स | `validateIndex()` संरचनात्मक मुद्दों को फैलने से पहले पकड़ लेता है। |
+| रेगेक्स DoS | कोई उपयोगकर्ता-प्रदत्त रेगेक्स नहीं — पैटर्न को सादे स्ट्रिंग लुकअप के रूप में मिलान किया जाता है। |
 
 पूर्ण सुरक्षा नीति के लिए [SECURITY.md](SECURITY.md) देखें।
 
 ---
 
-[MCP Tool Shop](https://mcp-tool-shop.github.io/) द्वारा बनाया गया
+[MCP Tool Shop](https://mcp-tool-shop.github.io/) द्वारा निर्मित।

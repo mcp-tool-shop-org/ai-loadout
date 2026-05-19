@@ -16,19 +16,20 @@
 
 Routeur de connaissances contextuel pour les agents d'IA.
 
-`ai-loadout` est le format de table de répartition et le moteur de correspondance qui permet aux agents d'IA de charger les connaissances appropriées pour la tâche en cours. Au lieu de tout inclure dans le contexte, vous conservez un index minimal et chargez les données à la demande.
+`ai-loadout` est le cœur de la pile Knowledge OS : tableau de dispatch, moteur de correspondance, résolveur hiérarchique et contrat d'exécution de l'agent. Au lieu de tout charger dans le contexte, vous conservez un index minimal et chargez les données à la demande.
 
-Considérez cela comme une configuration de jeu : vous équipez l'agent des connaissances dont il a strictement besoin avant chaque mission.
+Considérez cela comme une configuration de jeu : vous équipez l'agent exactement des connaissances dont il a besoin avant chaque mission.
 
 ## Installation
 
 ```bash
-npm install @mcptoolshop/ai-loadout
+npm install -g @mcptoolshop/ai-loadout   # CLI
+npm install @mcptoolshop/ai-loadout       # library
 ```
 
 ## Concepts clés
 
-### La table de répartition
+### Le tableau de dispatch
 
 Un `LoadoutIndex` est un index structuré des données de connaissances :
 
@@ -64,9 +65,9 @@ Un `LoadoutIndex` est un index structuré des données de connaissances :
 |------|----------|---------|
 | `core` | Toujours chargé | "Ne jamais ignorer les tests pour que l'intégration continue soit réussie" |
 | `domain` | Chargé lorsque les mots-clés de la tâche correspondent | Règles d'intégration continue lors de la modification des flux de travail |
-| `manual` | Jamais chargé automatiquement, recherche explicite uniquement | Détails spécifiques à certaines plateformes |
+| `manual` | Jamais chargé automatiquement, recherche explicite uniquement | Détails spécifiques à la plateforme |
 
-### Métadonnées du fichier de données
+### Métadonnées des données
 
 Chaque fichier de données contient ses propres métadonnées de routage :
 
@@ -88,76 +89,133 @@ CI minutes are finite...
 
 Les métadonnées sont la source de vérité. L'index est dérivé de celles-ci.
 
-## API
+## Exécution de l'agent (API principale)
 
-### `matchLoadout(tâche, index)`
+L'exécution est la méthode canonique pour que les agents utilisent une configuration. Elle englobe toute la séquence : résolution des niveaux → correspondance de la tâche → décision de ce qui doit être chargé → enregistrement de l'utilisation.
 
-Fait correspondre une description de tâche à un index de configuration. Renvoie les entrées qui doivent être chargées, classées par force de correspondance.
+### `planLoad(task, opts?)`
+
+Planifie ce qui doit être chargé pour une tâche donnée. Il s'agit de la fonction principale destinée à l'agent.
+
+```typescript
+import { planLoad } from "@mcptoolshop/ai-loadout";
+
+const plan = planLoad("fix the CI workflow");
+// plan.preload   — core entries, load immediately
+// plan.onDemand  — domain matches, load when needed
+// plan.manual    — available via explicit lookup only
+```
+
+Renvoie un `LoadPlan` avec :
+- `preload` / `onDemand` / `manual` — entrées séparées par mode de chargement
+- `provenance` — de quel niveau chaque entrée provient
+- `budget` — budget de jetons pour l'index résolu
+- `preloadTokens` / `onDemandTokens` — coûts totaux des jetons
+- `layerNames` / `conflicts` — métadonnées du niveau
+
+### `recordLoad(entryId, trigger, mode, tokensEst, opts?)`
+
+Enregistre qu'un agent a chargé une entrée. Permet l'observabilité (entrées inutilisées, dérive du budget, suivi de la fréquence). Facultatif - n'écrit que si `usagePath` est défini dans les options.
+
+### `manualLookup(id, opts?)`
+
+Charge explicitement une entrée manuelle par ID à partir de l'index résolu.
+
+## Résolveur
+
+Découvre et fusionne les index de configuration à partir d'une pile de niveaux canonique :
+
+1. **global** — `~/.ai-loadout/index.json`
+2. **org** — chemin explicite ou `$AI_LOADOUT_ORG`
+3. **project** — `<cwd>/.claude/loadout/index.json`
+4. **session** — chemin explicite ou `$AI_LOADOUT_SESSION`
+
+Les niveaux ultérieurs ont la priorité. Les niveaux manquants sont normaux.
+
+```typescript
+import { resolveLoadout, explainEntry } from "@mcptoolshop/ai-loadout";
+
+const { merged, layers, searched } = resolveLoadout();
+// merged.entries — deduplicated entries from all layers
+// merged.provenance — entryId → source layer name
+
+const why = explainEntry("github-actions", layers);
+// why.finalLayer, why.overrideChain, why.definitions
+```
+
+## Correspondance
+
+### `matchLoadout(task, index)`
+
+Fait correspondre une description de tâche à un index de configuration. Renvoie les entrées classées par force de correspondance.
 
 ```typescript
 import { matchLoadout } from "@mcptoolshop/ai-loadout";
 
 const results = matchLoadout("fix the CI workflow", index);
-// [{ entry: { id: "github-actions", ... }, score: 0.67, matchedKeywords: ["ci", "workflow"] }]
+// [{ entry, score: 0.67, matchedKeywords: ["ci", "workflow"], reason, mode }]
 ```
 
 - Les entrées principales sont toujours incluses (score de 1,0)
 - Les entrées manuelles ne sont jamais incluses automatiquement
-- Les entrées spécifiques à un domaine sont notées en fonction du chevauchement des mots-clés et d'un bonus de motif
-- Les résultats sont triés par score décroissant
+- Les entrées spécifiques au domaine sont notées en fonction du chevauchement des mots-clés + bonus de motif
+- Les résultats sont triés par score décroissant, puis par coût des jetons croissant
 
 ### `lookupEntry(id, index)`
 
 Recherche une entrée spécifique par ID. Pour les entrées manuelles ou l'accès explicite.
 
-```typescript
-import { lookupEntry } from "@mcptoolshop/ai-loadout";
+## Observabilité
 
-const entry = lookupEntry("github-actions", index);
-```
+### `recordUsage()` / `readUsage()` / `summarizeUsage()`
 
-### `parseFrontmatter(contenu)`
+Journal d'utilisation JSONL en append-only. Ne communique jamais avec le réseau, ne collecte jamais de données personnelles.
 
-Analyse les métadonnées au format YAML d'un fichier de données.
+### `findDeadEntries(index, events)`
 
-```typescript
-import { parseFrontmatter } from "@mcptoolshop/ai-loadout";
+Trouve les entrées qui n'ont jamais été chargées.
 
-const { frontmatter, body } = parseFrontmatter(fileContent);
-if (frontmatter) {
-  console.log(frontmatter.id, frontmatter.keywords);
-}
-```
+### `findKeywordOverlaps(index)`
 
-### `serializeFrontmatter(fm)`
+Trouve les mots-clés partagés entre les entrées (ambiguïtés de routage).
 
-Série les métadonnées d'un objet `Frontmatter` en une chaîne de caractères.
+### `analyzeBudget(index, usage?)`
+
+Répartition du budget de jetons avec une comparaison entre les valeurs observées et estimées.
+
+## Fusion
+
+### `mergeIndexes(layers)`
+
+Fusion déterministe pour les configurations hiérarchiques. Renvoie un `MergedIndex` avec suivi de l'origine et rapports de conflits.
+
+## Utilitaires
+
+### `parseFrontmatter(content)` / `serializeFrontmatter(fm)`
+
+Analyse et sérialisation des métadonnées au format YAML à partir des fichiers de charge.
 
 ### `validateIndex(index)`
 
-Valide l'intégrité structurelle d'un `LoadoutIndex`. Renvoie un tableau de problèmes.
+Vérifie l'intégrité structurelle d'un `LoadoutIndex`. Vérifie : champs obligatoires, identifiants uniques, format kebab-case, limites du résumé, présence de mots-clés pour les entrées de domaine, priorités valides, budgets non négatifs.
 
-```typescript
-import { validateIndex } from "@mcptoolshop/ai-loadout";
+### `estimateTokens(text)`
 
-const issues = validateIndex(index);
-const errors = issues.filter(i => i.severity === "error");
-if (errors.length > 0) {
-  console.error("Index has errors:", errors);
-}
+Estime le nombre de tokens à partir du texte. Utilise l'heuristique chars/4.
+
+## Interface en ligne de commande (CLI)
+
+```
+ai-loadout resolve                    Resolve layered loadouts
+ai-loadout explain <entry-id>         Explain why an entry resolved to its current state
+ai-loadout validate <index>           Validate index structure
+ai-loadout usage <jsonl>              Usage summary from event log
+ai-loadout dead <index> <jsonl>       Find entries never loaded
+ai-loadout overlaps <index>           Find keyword routing ambiguities
+ai-loadout budget <index> [jsonl]     Token budget breakdown
 ```
 
-Vérifications : champs obligatoires, ID uniques, format kebab-case, limites du résumé, présence de mots-clés pour les entrées de domaine, priorités valides, budgets non négatifs.
-
-### `estimateTokens(texte)`
-
-Estime le nombre de jetons à partir d'un texte. Utilise l'heuristique chars/4.
-
-```typescript
-import { estimateTokens } from "@mcptoolshop/ai-loadout";
-
-const tokens = estimateTokens(fileContent); // ~250
-```
+Toutes les commandes prennent en charge l'option `--json` pour les scripts. Les commandes de résolution acceptent les options `--project`, `--global`, `--org`, `--session`.
 
 ## Types
 
@@ -168,28 +226,46 @@ import type {
   Frontmatter,
   MatchResult,
   ValidationIssue,
-  Priority,       // "core" | "domain" | "manual"
-  Triggers,       // { task, plan, edit }
+  Priority,          // "core" | "domain" | "manual"
+  Triggers,          // { task, plan, edit }
+  LoadMode,          // "eager" | "lazy" | "manual"
   Budget,
+  UsageEvent,
+  MergeConflict,
+  MergedIndex,
+  LoadPlan,          // returned by planLoad()
+  ResolvedLoadout,   // returned by resolveLoadout()
+  EntryExplanation,  // returned by explainEntry()
+  IssueSeverity,     // "error" | "warning"
+  RuntimeOptions,    // options for planLoad / recordLoad / manualLookup
+  ResolveOptions,    // options for resolveLoadout / discoverLayers
+  UsageSummary,      // returned by summarizeUsage()
+  DeadEntry,         // returned by findDeadEntries()
+  KeywordOverlap,    // returned by findKeywordOverlaps()
+  BudgetBreakdown,   // returned by analyzeBudget()
+  DiscoveredLayer,   // a layer found and loaded by the resolver
+  SearchedLayer,     // a layer search location and its result
+  EntryDefinition,   // one layer's version of a specific entry
 } from "@mcptoolshop/ai-loadout";
 ```
 
 ## Consommateurs
 
-- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Optimiseur CLAUDE.md pour Claude Code. Utilise ai-loadout pour la table de répartition et la correspondance.
+- **[@mcptoolshop/claude-rules](https://github.com/mcp-tool-shop-org/claude-rules)** — Optimiseur pour CLAUDE.md pour Claude Code. Utilise ai-loadout pour la table de dispatch et la correspondance.
+- **[@mcptoolshop/claude-memories](https://github.com/mcp-tool-shop-org/claude-memories)** — Optimiseur pour MEMORY.md pour Claude Code. Génère des tables de dispatch à partir de fichiers de sujets de mémoire.
 
 ## Sécurité
 
-Ce paquet est une bibliothèque de données pure. Il n'accède pas au système de fichiers, ne fait pas de requêtes réseau ni ne collecte de données télémétriques. Toutes les opérations d'entrée/sortie sont de la responsabilité du consommateur.
+Les modules de correspondance, de fusion et de validation principaux sont des fonctions pures sans effets secondaires. Le module d'utilisation (`recordUsage` / `readUsage`) effectue des opérations d'entrée/sortie sur le système de fichiers local vers un journal JSONL en append-only. Le résolveur lit les fichiers d'index à partir de chemins de couche canoniques. Aucune requête réseau, aucune télémétrie, aucune dépendance native.
 
 ### Modèle de menace
 
 | Menace | Atténuation |
 |--------|------------|
-| Métadonnées corrompues | `parseFrontmatter()` renvoie `null` en cas d'entrée invalide, sans exceptions ni évaluation de code. |
-| Pollution de prototype | L'analyseur personnalisé utilise des littéraux d'objets simples, sans `JSON.parse` de structures imbriquées non fiables. |
-| Index avec des données incorrectes | `validateIndex()` détecte les problèmes structurels avant qu'ils ne se propagent. |
-| Attaque par regex DoS | Aucune expression régulière fournie par l'utilisateur, les motifs sont correspondés comme des recherches de chaînes simples. |
+| Métadonnées d'entrée malformées | `parseFrontmatter()` renvoie `null` en cas d'entrée invalide — aucune exception, pas d'évaluation de code. |
+| Pollution de prototype | L'analyseur personnalisé utilise des littéraux d'objets simples, sans fusion récursive de données non fiables. |
+| Index contenant des données incorrectes | `validateIndex()` détecte les problèmes structurels avant qu'ils ne se propagent. |
+| Attaque DoS par expressions régulières | Aucune expression régulière fournie par l'utilisateur — les motifs sont traités comme des recherches de chaînes simples. |
 
 Consultez [SECURITY.md](SECURITY.md) pour la politique de sécurité complète.
 
