@@ -1,9 +1,11 @@
 # Changelog
 
-## 1.4.3 — 2026-03-25
+## 1.4.3 — unreleased
 
-- **`validate` CLI command**: validate index structure from the command line (`ai-loadout validate <index>`)
-- **Fix**: `loadIndex()` now emits structured error on malformed JSON instead of raw stack trace
+- **`validate` CLI command** (2026-03-25): validate index structure from the command line (`ai-loadout validate <index>`)
+- **Fix**: `loadIndex()` now emits structured error on malformed JSON instead of raw stack trace (2026-03-25)
+- **Fix (CI)** (2026-05-18, PR #8): `tsconfig.json` adds `"types": ["node"]` so TypeScript 6 + `@types/node` 25 + `module: Node16` actually include node typings — CI had been red since 2026-04-25 with `TS2591 Cannot find name 'node:fs'` across all `node:*` imports
+- **Fix (security)** (2026-05-18): pick up `npm audit fix` for transitive `brace-expansion` (GHSA-f886-m6hf-6m8v, GHSA-jxxr-4gwj-5jf2, moderate) so the `npm audit --audit-level=moderate` CI gate passes
 
 ## 1.4.2 — 2026-03-06
 
