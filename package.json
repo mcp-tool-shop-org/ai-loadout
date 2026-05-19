@@ -44,6 +44,14 @@
   ],
   "author": "mcp-tool-shop",
   "license": "MIT",
+  "homepage": "https://mcp-tool-shop-org.github.io/ai-loadout/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mcp-tool-shop-org/ai-loadout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mcp-tool-shop-org/ai-loadout/issues"
+  },
   "engines": {
     "node": ">=20"
   },
